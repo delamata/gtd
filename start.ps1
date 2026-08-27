@@ -1,8 +1,8 @@
 #Requires -Version 5.0
 <#
   start.ps1 — inicia o servidor HTTP local do GTD Executivo (André Delamata).
-  100% local: apenas serve os arquivos deste diretório em http://localhost:8080.
-  Nenhum dado é enviado para a internet.
+  Apenas serve os arquivos deste diretório em http://localhost:8080; os dados
+  ficam no Supabase, então é necessário estar conectado à internet.
 #>
 
 $Host.UI.RawUI.WindowTitle = 'GTD Executivo - André Delamata'
@@ -10,7 +10,7 @@ $Host.UI.RawUI.WindowTitle = 'GTD Executivo - André Delamata'
 Write-Host '============================================================'
 Write-Host '  GTD Executivo - André Delamata'
 Write-Host '  Iniciando servidor local em http://localhost:8080'
-Write-Host '  (100% local — nenhum dado sai deste computador)'
+Write-Host '  (os dados ficam no Supabase — é necessário internet)'
 Write-Host '============================================================'
 Write-Host ''
 

@@ -160,3 +160,37 @@
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-5);
 }
+
+/* Tela de login (exibida no lugar do app-shell enquanto não há sessão) */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-sidebar);
+  padding: var(--space-4);
+}
+.login-screen__card {
+  width: 100%;
+  max-width: 360px;
+}
+.login-screen__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.login-screen__brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-navy);
+  color: var(--color-yellow);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-screen__title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: var(--color-navy); }
+.login-screen__subtitle { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.login-screen__forgot { display: inline-block; margin-top: var(--space-3); font-size: var(--font-size-sm); color: var(--color-blue); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; }

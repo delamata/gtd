@@ -1,9 +1,12 @@
 // ==========================================================================
 // app.js — ponto de entrada: monta o shell (sidebar/topbar), registra rotas
-// e liga os atalhos globais. 100% local — nenhuma chamada de rede.
+// e liga os atalhos globais. Dados em Supabase — requer autenticação e internet.
 // ==========================================================================
 import * as store from './store.js';
+import * as db from './database.js';
 import * as router from './router.js';
+import { supabase } from './supabaseClient.js';
+import { renderLogin } from './views/login.js';
 import { el, clearNode, formatDateLong, todayISO, getPreferences, savePreferences, downloadTextFile, nowISO } from './utils.js';
 import { icon } from './components/icons.js';
 import { showToast } from './components/toast.js';
@@ -30,27 +33,60 @@ const NAV_ITEMS = [
   { route: '#/configuracoes', label: 'Configurações', icon: 'settings' },
 ];
 
+let appWired = false; // garante que sidebar/topbar/rotas/atalhos só sejam montados uma vez
+
 async function bootstrap() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) await startApp();
+  else showLoginScreen();
+
+  // Sessão expirada ou "Sair" clicado: volta para a tela de login.
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('app-shell').style.display = 'none';
+      showLoginScreen();
+    }
+  });
+}
+
+function showLoginScreen() {
+  document.getElementById('app-shell').style.display = 'none';
+  const authRoot = document.getElementById('auth-root');
+  renderLogin(authRoot, { onSuccess: () => { clearNode(authRoot); startApp(); } });
+}
+
+async function startApp() {
+  clearNode(document.getElementById('auth-root'));
+  document.getElementById('app-shell').style.display = '';
+
   try {
+    await db.useSupabase(supabase);
     await store.init();
   } catch (err) {
-    console.error('[app] Falha ao iniciar o banco local', err);
-    document.getElementById('view-root').appendChild(
-      el('div', { class: 'empty-state' }, [el('p', { text: 'Não foi possível iniciar o armazenamento local (IndexedDB) neste navegador. Utilize Chrome ou Edge atualizados.' })])
+    console.error('[app] Falha ao conectar ao Supabase', err);
+    const root = document.getElementById('view-root');
+    clearNode(root);
+    root.appendChild(
+      el('div', { class: 'empty-state' }, [el('p', { text: 'Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet e recarregue a página.' })])
     );
     return;
   }
 
-  buildSidebar();
-  buildTopbar();
-  registerRoutes();
-
-  router.onRouteChange((path) => highlightNav(path));
-  router.start(document.getElementById('view-root'));
-
-  store.subscribe(() => updateOverdueBadge());
+  if (!appWired) {
+    appWired = true;
+    buildSidebar();
+    buildTopbar();
+    registerRoutes();
+    router.onRouteChange((path) => highlightNav(path));
+    router.start(document.getElementById('view-root'));
+    store.subscribe(() => updateOverdueBadge());
+    bindGlobalShortcuts();
+  } else {
+    // Reautenticação (login → sair → login de novo) na mesma sessão de página:
+    // a UI já está montada, só força a view atual a buscar dados de novo.
+    router.navigate(router.currentPath());
+  }
   updateOverdueBadge();
-  bindGlobalShortcuts();
 }
 
 function buildSidebar() {
@@ -109,6 +145,12 @@ function buildTopbar() {
     downloadTextFile(`backup-gtd-${nowISO().replace(/[:.]/g, '-')}.json`, JSON.stringify(data, null, 2), 'application/json');
     showToast('Backup exportado.', { type: 'success' });
   } }, [icon('download', { size: 17 })]));
+
+  const logoutBtn = el('button', { class: 'btn btn--ghost btn--sm', type: 'button', title: 'Sair da conta', onClick: async () => { await supabase.auth.signOut(); } }, ['Sair']);
+  actions.appendChild(logoutBtn);
+  supabase.auth.getUser().then(({ data }) => {
+    if (data && data.user) logoutBtn.title = `Sair (${data.user.email})`;
+  }).catch(() => {});
 }
 
 function buildNovaAtividadeDropdown() {

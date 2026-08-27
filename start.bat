@@ -5,7 +5,7 @@ title GTD Executivo - André Delamata
 echo ============================================================
 echo   GTD Executivo - André Delamata
 echo   Iniciando servidor local em http://localhost:8080
-echo   (100%% local — nenhum dado sai deste computador)
+echo   (os dados ficam no Supabase — e necessario internet)
 echo ============================================================
 echo.
 

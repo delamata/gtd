@@ -1,7 +1,8 @@
 // ==========================================================================
 // backup.js — exportação / importação / restauração de dados em JSON
-// Nunca envia dados para fora do computador do usuário: apenas gera/lê
-// arquivos locais via download do navegador e leitura de File local.
+// O arquivo em si é gerado/lido localmente (download do navegador, leitura
+// de File local); os dados que ele lê/grava vêm do adapter ativo em
+// js/database.js (Supabase em produção), que sim envia/recebe pela rede.
 // ==========================================================================
 import * as db from './database.js';
 import { nowISO, todayISO, isWithinNextDays, isOverdue, downloadTextFile, getPreferences } from './utils.js';

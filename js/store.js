@@ -22,21 +22,52 @@ export function subscribe(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
+
+// ---------------------------------------------------------------------
+// Sincronização entre abas — o IndexedDB já é compartilhado pelo navegador,
+// mas cada aba mantém sua própria lista de listeners em memória. O
+// BroadcastChannel replica o evento de mutação para as demais abas da
+// mesma origem, que então re-executam seus listeners (refresh) e voltam
+// a consultar o banco — já atualizado. Não sincroniza entre navegadores
+// ou dispositivos diferentes: isso exigiria um backend.
+// ---------------------------------------------------------------------
+const syncChannel = ('BroadcastChannel' in globalThis) ? new BroadcastChannel('gtd_delamata_sync') : null;
+if (syncChannel) {
+  syncChannel.onmessage = (event) => emit({ ...event.data, __fromOtherTab: true });
+  // Em Node (usado pelos testes), um BroadcastChannel aberto mantém o
+  // processo vivo. unref() existe só no Node e evita isso; navegadores não
+  // têm esse método, então o guard acima cobre os dois ambientes.
+  if (typeof syncChannel.unref === 'function') syncChannel.unref();
+}
+
 function emit(event) {
   for (const fn of listeners) {
     try { fn(event); } catch (err) { console.error('[store] erro em listener', err); }
+  }
+  if (syncChannel && !event.__fromOtherTab) {
+    try { syncChannel.postMessage(event); } catch (err) { console.warn('[store] não foi possível sincronizar com outras abas', err); }
   }
 }
 
 // ---------------------------------------------------------------------
 // Inicialização
 // ---------------------------------------------------------------------
+let remoteChangeWired = false;
+
 export async function init() {
   await db.openDatabase();
   await db.runDataMigrations();
   const meta = await db.getMeta();
   if (!meta || !meta.seeded) {
     await seedInitialData();
+  }
+  // Mudanças feitas em OUTRO dispositivo/aba (Supabase Realtime; no-op no
+  // adapter IndexedDB) chegam aqui e reaproveitam o mesmo pub/sub que já
+  // notifica as views a re-consultar os dados. Guardado por flag para não
+  // abrir uma segunda assinatura em caso de logout seguido de novo login.
+  if (!remoteChangeWired) {
+    remoteChangeWired = true;
+    db.onRemoteChange(() => emit({ type: 'remote:sync' }));
   }
 }
 

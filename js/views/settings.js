@@ -18,7 +18,7 @@ const ACAO_LABEL = {
 
 export async function render(root) {
   root.appendChild(el('div', { class: 'view-header' }, [
-    el('div', {}, [el('h1', { class: 'view-title', text: 'Configurações' }), el('p', { class: 'view-subtitle', text: 'Backup, restauração e auditoria — tudo local, nada é enviado à internet.' })]),
+    el('div', {}, [el('h1', { class: 'view-title', text: 'Configurações' }), el('p', { class: 'view-subtitle', text: 'Backup, restauração e auditoria dos seus dados no Supabase.' })]),
   ]));
 
   root.appendChild(buildBackupSection());

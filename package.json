@@ -2,7 +2,7 @@
   "name": "gtd-executivo",
   "version": "1.0.0",
   "private": true,
-  "description": "Painel de controle pessoal de tarefas, FUPs e agenda — 100% local, sem dependências externas.",
+  "description": "Painel de controle pessoal de tarefas, FUPs e agenda — dados em Supabase, sincronizados em tempo real entre dispositivos.",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",

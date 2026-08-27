@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GTD Executivo — André Delamata</title>
-<meta name="description" content="Painel de controle pessoal de tarefas, FUPs, agenda e histórico — uso local, sem dependências externas.">
+<meta name="description" content="Painel de controle pessoal de tarefas, FUPs, agenda e histórico — sincronizado em tempo real via Supabase, acessível também pelo celular.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23122B40'/%3E%3Ctext x='12' y='17' font-size='13' font-family='Arial,Helvetica,sans-serif' font-weight='700' fill='%23FFD400' text-anchor='middle'%3EGT%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/reset.css">
 <link rel="stylesheet" href="css/tokens.css">
@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
-<div class="app-shell" id="app-shell">
+<div id="auth-root"></div>
+<div class="app-shell" id="app-shell" style="display:none;">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar__brand">
       <div class="sidebar__brand-mark" aria-hidden="true">GT</div>
@@ -43,7 +44,7 @@
 
 <div id="modal-root"></div>
 
-<noscript>Este sistema requer JavaScript habilitado para funcionar (100% local, sem envio de dados para a internet).</noscript>
+<noscript>Este sistema requer JavaScript habilitado para funcionar.</noscript>
 
 <script type="module" src="js/app.js"></script>
 </body>
