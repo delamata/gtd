@@ -115,6 +115,31 @@ export async function saveMeta(meta) {
 }
 
 /**
+ * "Reivindica" o direito de semear os dados de exemplo: só retorna `true`
+ * para UM caller, mesmo com dois dispositivos/abas fazendo o primeiro
+ * login quase ao mesmo tempo. O UPDATE ... WHERE seeded = false é atômico
+ * (lock de linha do Postgres) — o segundo caller sempre vê seeded = true
+ * e recebe 0 linhas afetadas, então nunca semeia em duplicidade.
+ */
+export async function claimSeed() {
+  const id = await uid();
+  // Garante que a linha de meta exista, SEM sobrescrever um seeded já true
+  // (por isso ignoreDuplicates — um upsert comum resetaria seeded a cada login).
+  check(await client.from('meta').upsert(
+    { user_id: id, schemaVersion: 1, seeded: false, lastBackupAt: '' },
+    { onConflict: 'user_id', ignoreDuplicates: true }
+  ));
+  const { data, error } = await client
+    .from('meta')
+    .update({ seeded: true })
+    .eq('user_id', id)
+    .eq('seeded', false)
+    .select('user_id');
+  if (error) throw error;
+  return !!(data && data.length);
+}
+
+/**
  * Gera o próximo ID sequencial e nunca reutilizado para um prefixo, via a
  * função Postgres next_id() (supabase/schema.sql) — o incremento atômico
  * roda no servidor (lock de linha), equivalente à transação readwrite do

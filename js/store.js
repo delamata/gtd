@@ -57,8 +57,11 @@ let remoteChangeWired = false;
 export async function init() {
   await db.openDatabase();
   await db.runDataMigrations();
-  const meta = await db.getMeta();
-  if (!meta || !meta.seeded) {
+  // claimSeed() é atômico no backend: se duas abas/dispositivos fizerem o
+  // primeiro login quase ao mesmo tempo, só uma delas "ganha" e semeia —
+  // evita duplicar colaboradores/tarefas/FUPs de exemplo (ver claimSeed()
+  // em cada adapter).
+  if (await db.claimSeed()) {
     await seedInitialData();
   }
   // Mudanças feitas em OUTRO dispositivo/aba (Supabase Realtime; no-op no

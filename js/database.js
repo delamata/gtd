@@ -41,6 +41,7 @@ export const clearAllStores = (...args) => active.clearAllStores(...args);
 export const getMeta = (...args) => active.getMeta(...args);
 export const saveMeta = (...args) => active.saveMeta(...args);
 export const getNextId = (...args) => active.getNextId(...args);
+export const claimSeed = (...args) => active.claimSeed(...args);
 export const runDataMigrations = (...args) => active.runDataMigrations(...args);
 
 /** Assina mudanças feitas por OUTRO dispositivo/aba (Realtime). No-op no adapter local. */

@@ -160,6 +160,24 @@ export async function saveMeta(meta) {
 }
 
 /**
+ * "Reivindica" o direito de semear os dados de exemplo: só retorna `true`
+ * na primeira chamada (troca seeded false→true na mesma transação
+ * readwrite). Chamadas concorrentes (ex.: duas abas abrindo o app no
+ * primeiro acesso) não semeiam em duplicidade — só uma delas ganha.
+ */
+export async function claimSeed() {
+  return withStores(['meta'], 'readwrite', async (tx) => {
+    const store = tx.objectStore('meta');
+    let meta = await promisifyRequest(store.get('app'));
+    if (!meta) meta = { key: 'app', schemaVersion: SCHEMA_VERSION, counters: {}, seeded: false, lastBackupAt: '' };
+    if (meta.seeded) return false;
+    meta.seeded = true;
+    store.put(meta);
+    return true;
+  });
+}
+
+/**
  * Gera o próximo ID sequencial e nunca reutilizado para um prefixo
  * (T = tarefa, F = FUP, A = agenda, C = conclusão, P = colaborador).
  * A leitura+incremento ocorre na MESMA transação readwrite, evitando
