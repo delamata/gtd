@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Design tokens — paleta executiva CVC
+   ========================================================================== */
+:root {
+  /* Paleta principal */
+  --color-navy: #122B40;
+  --color-blue: #1E425F;
+  --color-yellow: #FFD400;
+  --color-blue-light: #EAF3F8;
+  --color-green-bg: #DDF3E4;
+  --color-red-bg: #F9DADA;
+  --color-orange-bg: #FDE8C8;
+  --color-bg: #F5F7F8;
+
+  /* Neutros derivados */
+  --color-white: #FFFFFF;
+  --color-text: #16232E;
+  --color-text-muted: #52697D;
+  --color-text-inverse: #F5F7F8;
+  --color-border: #D7E1E8;
+  --color-border-strong: #B7C6D1;
+
+  /* Semânticas de estado */
+  --color-success: #1E7A3E;
+  --color-success-bg: var(--color-green-bg);
+  --color-danger: #B3261E;
+  --color-danger-bg: var(--color-red-bg);
+  --color-warning: #8A5A00;
+  --color-warning-bg: var(--color-orange-bg);
+  --color-info: #1E425F;
+  --color-info-bg: var(--color-blue-light);
+
+  /* Prioridades */
+  --color-priority-alta: #B3261E;
+  --color-priority-media: #8A5A00;
+  --color-priority-baixa: #1E7A3E;
+
+  /* Superfícies */
+  --surface-0: var(--color-bg);
+  --surface-1: var(--color-white);
+  --surface-2: var(--color-blue-light);
+  --surface-sidebar: var(--color-navy);
+  --surface-sidebar-active: var(--color-blue);
+
+  /* Tipografia */
+  --font-base: -apple-system, "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --font-size-xxl: 1.75rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.45;
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  /* Raios e sombras */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(18, 43, 64, 0.08);
+  --shadow-md: 0 4px 16px rgba(18, 43, 64, 0.14);
+  --shadow-lg: 0 12px 32px rgba(18, 43, 64, 0.22);
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --sidebar-width-collapsed: 64px;
+  --topbar-height: 60px;
+
+  /* Foco / acessibilidade */
+  --focus-ring: 0 0 0 3px rgba(255, 212, 0, 0.55);
+
+  /* Transições */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+}

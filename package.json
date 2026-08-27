@@ -1,0 +1,11 @@
+{
+  "name": "gtd-executivo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Painel de controle pessoal de tarefas, FUPs e agenda — 100% local, sem dependências externas.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python3 -m http.server 8080"
+  }
+}
