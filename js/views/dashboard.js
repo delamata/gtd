@@ -2,13 +2,16 @@
 // views/dashboard.js — painel executivo com indicadores e foco do dia
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, todayISO, TASK_STATUS_LABEL, FUP_STATUS_LABEL, AGENDA_STATUS_LABEL, PRIORIDADE_LABEL, statusBadgeClass, priorityDotClass } from '../utils.js';
+import { el, formatDateBR, todayISO, TASK_STATUS_LABEL, FUP_STATUS_LABEL, AGENDA_STATUS_LABEL, PRIORIDADE_LABEL, statusBadgeClass, priorityDotClass, sortBy } from '../utils.js';
 import { icon } from '../components/icons.js';
 import { showToast } from '../components/toast.js';
 import { navigate } from '../router.js';
 import { buildDonutChart, buildHorizontalBarChart, buildVerticalBarChart, buildLegend, PRIORITY_COLORS, STATUS_COLORS, PALETTE } from '../dashboard.js';
 import { openTaskForm } from './tasks.js';
 import { openFupForm } from './fups.js';
+import { renderTable, nextSortState } from '../components/table.js';
+
+let collabSortState = { key: 'nome', dir: 'asc' };
 
 export async function render(root) {
   root.appendChild(el('div', { class: 'view-header' }, [
@@ -35,7 +38,7 @@ export async function render(root) {
     renderCards(cardsHost, stats);
     renderFocus(leftCol, focus, refresh);
     renderAgendaToday(leftCol, stats.agendaHoje, refresh);
-    renderByCollaborator(rightCol, byCollaborator);
+    renderByCollaborator(rightCol, byCollaborator, refresh);
     renderUpcoming(rightCol, upcoming);
     renderCharts(chartsHost, stats);
   }
@@ -116,28 +119,39 @@ function renderAgendaToday(container, agenda, refresh) {
   section.appendChild(list);
 }
 
-function renderByCollaborator(container, rows) {
+function renderByCollaborator(container, rows, refresh) {
   let section = container.querySelector('[data-section="collab"]');
   if (!section) { section = el('section', { class: 'section', dataset: { section: 'collab' } }); container.appendChild(section); }
   section.innerHTML = '';
   section.appendChild(el('div', { class: 'section__header' }, [el('span', { class: 'section__title', text: 'FUPs por colaborador' })]));
-  const wrap = el('div', { class: 'table-wrapper' });
-  const table = el('table', { class: 'data-table' });
-  table.appendChild(el('thead', {}, [el('tr', {}, ['Colaborador', 'Abertos', 'Atrasados', 'Aguardando', 'Próx. FUP', 'Item crítico'].map((h) => el('th', { text: h })))]));
-  const tbody = el('tbody');
-  for (const r of rows) {
-    tbody.appendChild(el('tr', { style: 'cursor:pointer;', onClick: () => navigate(`#/fups?colaboradorId=${r.colaborador.id}`) }, [
-      el('td', { text: r.colaborador.nome }),
-      el('td', { text: String(r.totalAberto) }),
-      el('td', {}, [r.atrasados ? el('span', { class: 'badge badge--danger', text: String(r.atrasados) }) : '0']),
-      el('td', {}, [r.aguardando ? el('span', { class: 'badge badge--warning', text: String(r.aguardando) }) : '0']),
-      el('td', { text: r.proximoFup ? formatDateBR(r.proximoFup) : '—' }),
-      el('td', { text: r.itemMaisCritico || '—' }),
-    ]));
-  }
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  section.appendChild(wrap);
+  const tableHost = el('div');
+  section.appendChild(tableHost);
+
+  const keyFn = {
+    nome: (r) => r.colaborador.nome,
+    totalAberto: (r) => r.totalAberto,
+    atrasados: (r) => r.atrasados,
+    aguardando: (r) => r.aguardando,
+    proximoFup: (r) => r.proximoFup || '9999',
+    itemMaisCritico: (r) => r.itemMaisCritico || '',
+  }[collabSortState.key] || ((r) => r.colaborador.nome);
+  const sortedRows = sortBy(rows, keyFn, collabSortState.dir);
+
+  renderTable(tableHost, {
+    columns: [
+      { key: 'nome', label: 'Colaborador', render: (r) => r.colaborador.nome },
+      { key: 'totalAberto', label: 'Abertos', render: (r) => String(r.totalAberto) },
+      { key: 'atrasados', label: 'Atrasados', render: (r) => (r.atrasados ? el('span', { class: 'badge badge--danger', text: String(r.atrasados) }) : '0') },
+      { key: 'aguardando', label: 'Aguardando', render: (r) => (r.aguardando ? el('span', { class: 'badge badge--warning', text: String(r.aguardando) }) : '0') },
+      { key: 'proximoFup', label: 'Próx. FUP', render: (r) => (r.proximoFup ? formatDateBR(r.proximoFup) : '—') },
+      { key: 'itemMaisCritico', label: 'Item crítico', render: (r) => r.itemMaisCritico || '—' },
+    ],
+    rows: sortedRows,
+    sortState: collabSortState,
+    onSort: (key) => { collabSortState = nextSortState(collabSortState, key); refresh(); },
+    onRowClick: (r) => navigate(`#/fups?colaboradorId=${r.colaborador.id}`),
+    emptyMessage: 'Nenhum colaborador com FUPs.',
+  });
 }
 
 function renderUpcoming(container, upcoming) {
