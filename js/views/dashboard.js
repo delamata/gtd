@@ -55,6 +55,7 @@ function renderCards(container, stats) {
     { label: 'FUPs abertos', value: stats.fupsAbertos, tone: '', route: '#/fups' },
     { label: 'Itens para hoje', value: stats.itensHoje, tone: 'accent', route: '#/hoje' },
     { label: 'Atrasados', value: stats.atrasados, tone: 'danger', route: '#/hoje' },
+    { label: 'Urgentes', value: stats.urgentes, tone: 'danger', route: '#/tarefas' },
     { label: 'Alta prioridade', value: stats.altaPrioridade, tone: 'warning', route: '#/tarefas' },
     { label: 'Aguardando retorno', value: stats.aguardandoRetorno, tone: 'warning', route: '#/fups' },
     { label: 'Agenda de hoje', value: stats.agendaHoje.length, tone: '', route: '#/agenda' },

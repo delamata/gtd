@@ -90,3 +90,52 @@ test('identifica tarefas atrasadas (prazo no passado e status aberto)', async ()
   const overdueAfter = await store.getOverdueItems();
   assert.ok(!overdueAfter.some((i) => i.id === task.id), 'tarefa concluída não deve mais aparecer como atrasada');
 });
+
+test('arquivar uma tarefa a remove das listagens e das agregações; desarquivar a traz de volta', async () => {
+  const task = await store.createTask({ titulo: 'Tarefa a arquivar', prazo: '2020-02-02' });
+  assert.equal(task.arquivada, false);
+  assert.ok((await store.listTasks()).some((t) => t.id === task.id));
+  assert.ok((await store.getOverdueItems()).some((i) => i.id === task.id));
+
+  const archived = await store.archiveTask(task.id);
+  assert.equal(archived.arquivada, true);
+  assert.ok(!(await store.listTasks()).some((t) => t.id === task.id), 'arquivada não aparece na listagem padrão');
+  assert.ok(!(await store.getOverdueItems()).some((i) => i.id === task.id), 'arquivada não conta como atrasada');
+  assert.ok(!(await store.globalSearch('Tarefa a arquivar')).some((r) => r.id === task.id), 'arquivada some da busca global');
+
+  // ...mas continua no banco, acessível pelos filtros explícitos
+  assert.ok((await store.listTasks({ somenteArquivadas: true })).some((t) => t.id === task.id));
+  assert.ok((await store.listTasks({ includeArchived: true })).some((t) => t.id === task.id));
+  assert.ok(await store.getTask(task.id), 'arquivar nunca apaga o registro');
+
+  const restored = await store.unarchiveTask(task.id);
+  assert.equal(restored.arquivada, false);
+  assert.ok((await store.listTasks()).some((t) => t.id === task.id));
+  assert.ok(!(await store.listTasks({ somenteArquivadas: true })).some((t) => t.id === task.id));
+});
+
+test('editar uma tarefa arquivada preserva o arquivamento', async () => {
+  const task = await store.createTask({ titulo: 'Arquivada e editada' });
+  await store.archiveTask(task.id);
+  const updated = await store.updateTask(task.id, { titulo: 'Arquivada e editada (revisão)' });
+  assert.equal(updated.arquivada, true);
+});
+
+test('aceita o status urgente em tarefas e o prioriza no foco do dia', async () => {
+  const task = await store.createTask({ titulo: 'Incêndio para apagar', status: 'urgente', prioridade: 'baixa' });
+  assert.equal(task.status, 'urgente');
+
+  // Comparável: mesma ausência de prazo, só mudam status e prioridade.
+  const altaPrioridade = await store.createTask({ titulo: 'Importante, mas não urgente', status: 'a_fazer', prioridade: 'alta' });
+  const focus = await store.getFocusOfDay(100);
+  const urgente = focus.find((i) => i.id === task.id);
+  const alta = focus.find((i) => i.id === altaPrioridade.id);
+  assert.ok(urgente, 'tarefa urgente deve entrar no foco do dia mesmo sem prazo');
+  assert.ok(alta);
+  assert.ok(urgente._score > alta._score, 'urgente pontua acima de prioridade alta');
+
+  const stats = await store.getDashboardStats();
+  assert.ok(stats.urgentes >= 1);
+
+  await assert.rejects(() => store.createTask({ titulo: 'Status inexistente', status: 'urgentissimo' }), { name: 'ValidationError' });
+});

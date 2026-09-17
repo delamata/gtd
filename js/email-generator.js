@@ -53,8 +53,8 @@ export async function generateExecutiveEmail(filters = {}) {
 
   const concluidas = filters.incluirConcluidos === false ? [] : scopedHistory;
   const emAndamento = [
-    ...scopedTasks.filter((t) => ['em_andamento', 'a_fazer', 'nao_iniciado', 'agendado'].includes(t.status)),
-    ...scopedFups.filter((f) => ['em_andamento', 'a_fazer', 'nao_iniciado', 'nao_agendada'].includes(f.status)).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
+    ...scopedTasks.filter((t) => ['urgente', 'em_andamento', 'a_fazer', 'nao_iniciado', 'agendado'].includes(t.status)),
+    ...scopedFups.filter((f) => ['urgente', 'em_andamento', 'a_fazer', 'nao_iniciado', 'nao_agendada'].includes(f.status)).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
   ];
   const aguardandoRetorno = [
     ...scopedTasks.filter((t) => t.status === 'aguardando_retorno'),
@@ -65,8 +65,8 @@ export async function generateExecutiveEmail(filters = {}) {
     ...scopedFups.filter((f) => f.status === 'a_confirmar').map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
   ];
   const riscos = [
-    ...scopedTasks.filter((t) => isOpenStatus(t.status) && (isOverdue(t, 'prazo') || t.status === 'a_confirmar')),
-    ...scopedFups.filter((f) => isOpenStatus(f.status) && (isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal') || f.dependencia)).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
+    ...scopedTasks.filter((t) => isOpenStatus(t.status) && (isOverdue(t, 'prazo') || t.status === 'a_confirmar' || t.status === 'urgente')),
+    ...scopedFups.filter((f) => isOpenStatus(f.status) && (isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal') || f.dependencia || f.status === 'urgente')).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
   ];
   const prazosRelevantes = [
     ...scopedTasks.filter((t) => isOpenStatus(t.status) && (withinPeriod(t.prazo, de, ate) || isWithinNextDays(t.prazo, 7))),

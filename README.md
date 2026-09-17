@@ -24,6 +24,24 @@ A camada `js/database.js` é uma fachada fina sobre um "adapter" trocável:
 em `js/app.js`). `js/store.js` — onde vive toda a regra de negócio — nunca
 sabe qual dos dois está ativo.
 
+## Arquivamento e status
+
+- **Arquivar tarefas e FUPs**: o botão de arquivar (ícone de caixa) na
+  listagem tira o item de circulação — ele some das telas de Tarefas/FUPs,
+  do Dashboard, do Hoje, do foco do dia, da busca global e do e-mail
+  executivo. Nada é apagado: o registro continua no banco e o chip
+  **"Arquivadas" / "Arquivados"** na barra de filtros mostra só os
+  arquivados, com a ação de desarquivar. Também funciona em lote, pela
+  barra de seleção múltipla.
+- **Status "Urgente"**: disponível em tarefas e FUPs, aparece com selo
+  vermelho, tem card próprio no Dashboard, sobe ao topo do "Foco do dia"
+  e entra na seção "Riscos e bloqueios" do e-mail executivo.
+
+> Se o seu banco Supabase foi criado antes desta versão, rode de novo o
+> [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor — ele cria a
+> coluna `arquivada` que faltava na tabela `fups` (é idempotente, pode
+> rodar quantas vezes quiser).
+
 ## Configuração inicial (uma vez só)
 
 1. **Schema do banco**: abra o [SQL Editor](https://supabase.com/dashboard/project/_/sql)

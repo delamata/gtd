@@ -168,6 +168,9 @@
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover { background: var(--surface-2); }
 .data-table tbody tr.is-overdue td:first-child { box-shadow: inset 3px 0 0 var(--color-danger); }
+/* Linhas arquivadas só aparecem no filtro "Arquivadas" — ficam esmaecidas
+   para não competirem visualmente com os itens ativos. */
+.data-table tbody tr.is-archived { opacity: 0.68; }
 .data-table tbody tr.is-selected { background: var(--color-info-bg); }
 .data-table td.col-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--color-text-muted); font-size: var(--font-size-xs); }
 .data-table input[type="checkbox"], .item-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--color-navy); }

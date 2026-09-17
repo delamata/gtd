@@ -64,6 +64,7 @@ export function makeFup(id, data = {}) {
     qtdCobrancas: data.qtdCobrancas || 0,
     ultimoContatoEm: data.ultimoContatoEm || '',
     historico: Array.isArray(data.historico) ? data.historico : [],
+    arquivada: !!data.arquivada,
     deletedFlag: !!data.deletedFlag,
   };
 }
@@ -132,7 +133,7 @@ export function makeAuditEntry(id, { tipoAcao, tipoRegistro, idRegistro, valorAn
   return {
     id,
     dataHora: nowISO(),
-    tipoAcao, // criacao | edicao | conclusao | reabertura | cancelamento | arquivamento | restauracao_backup
+    tipoAcao, // criacao | edicao | conclusao | reabertura | cancelamento | arquivamento | desarquivamento | restauracao_backup
     tipoRegistro, // task | fup | agenda | collaborator | history | system
     idRegistro: idRegistro || '',
     valorAnterior: valorAnterior ? JSON.stringify(valorAnterior) : '',

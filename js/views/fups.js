@@ -27,12 +27,12 @@ export async function render(root, params = {}) {
 
   async function refresh() {
     const collaborators = await store.listCollaborators();
-    const areas = Array.from(new Set((await store.listFups({})).map((f) => f.area).filter(Boolean))).sort();
+    const areas = Array.from(new Set((await store.listFups({ includeArchived: true })).map((f) => f.area).filter(Boolean))).sort();
     renderFilterBar(filterBar, filters, collaborators, areas, () => { saveSessionFilters(FILTER_KEY, filters); refresh(); });
     let rows = await store.listFups(filters);
     if (filters.stale) rows = rows.filter(isStale);
     rows = sortRows(rows);
-    renderBulkBar(bulkBar, refresh);
+    renderBulkBar(bulkBar, refresh, !!filters.somenteArquivadas);
     renderTable(tableHost, {
       columns: buildColumns(collaborators, refresh),
       rows,
@@ -40,11 +40,11 @@ export async function render(root, params = {}) {
       selectedIds,
       onToggleSelect: (id, checked) => { checked ? selectedIds.add(id) : selectedIds.delete(id); refresh(); },
       onToggleSelectAll: (checked) => { rows.forEach((r) => (checked ? selectedIds.add(r.id) : selectedIds.delete(r.id))); refresh(); },
-      getRowClass: (r) => (isOverdue(r, 'proximoFupEm') || isOverdue(r, 'prazoFinal') ? 'is-overdue' : ''),
+      getRowClass: (r) => [isOverdue(r, 'proximoFupEm') || isOverdue(r, 'prazoFinal') ? 'is-overdue' : '', r.arquivada ? 'is-archived' : ''].filter(Boolean).join(' '),
       onRowClick: (r) => openFupForm(r, refresh),
       sortState,
       onSort: (key) => { sortState = nextSortState(sortState, key); refresh(); },
-      emptyMessage: 'Nenhum FUP encontrado com os filtros atuais.',
+      emptyMessage: filters.somenteArquivadas ? 'Nenhum FUP arquivado.' : 'Nenhum FUP encontrado com os filtros atuais.',
     });
   }
 
@@ -68,6 +68,9 @@ function renderFilterBar(container, filters, collaborators, areas, onChange) {
   }
   const staleChip = el('button', { class: `filter-chip${filters.stale ? ' is-active' : ''}`, type: 'button', text: 'Sem atualização há 7+ dias', onClick: () => { filters.stale = !filters.stale; onChange(); } });
   container.appendChild(staleChip);
+  // Arquivados somem de todas as listagens: este chip é a única porta de
+  // entrada para eles, e quando ligado a tela mostra SOMENTE os arquivados.
+  container.appendChild(el('button', { class: `filter-chip${filters.somenteArquivadas ? ' is-active' : ''}`, type: 'button', text: 'Arquivados', onClick: () => { filters.somenteArquivadas = !filters.somenteArquivadas; selectedIds.clear(); onChange(); } }));
 
   const search = el('input', { type: 'search', placeholder: 'Buscar por assunto, colaborador, tag...' });
   search.value = filters.search || '';
@@ -102,7 +105,7 @@ function isStale(fup) {
   return diffDaysISO(fup.atualizadoEm.slice(0, 10), todayISO()) > 7;
 }
 
-function renderBulkBar(container, refresh) {
+function renderBulkBar(container, refresh, showingArchived = false) {
   container.innerHTML = '';
   if (!selectedIds.size) return;
   container.appendChild(el('div', { class: 'bulk-bar' }, [
@@ -114,6 +117,15 @@ function renderBulkBar(container, refresh) {
       for (const id of selectedIds) await store.cancelFup(id);
       selectedIds.clear(); showToast('FUPs cancelados.'); refresh();
     } }),
+    el('button', { class: 'btn btn--sm btn--secondary', type: 'button', text: showingArchived ? 'Desarquivar selecionados' : 'Arquivar selecionados', onClick: async () => {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) await (showingArchived ? store.unarchiveFup(id) : store.archiveFup(id));
+      selectedIds.clear();
+      showToast(showingArchived ? 'FUPs desarquivados.' : 'FUPs arquivados.', {
+        undo: () => Promise.all(ids.map((id) => (showingArchived ? store.archiveFup(id) : store.unarchiveFup(id)))),
+      });
+      refresh();
+    } }),
     el('button', { class: 'btn btn--sm btn--ghost', type: 'button', text: 'Limpar seleção', onClick: () => { selectedIds.clear(); refresh(); } }),
   ]));
 }
@@ -121,7 +133,7 @@ function renderBulkBar(container, refresh) {
 function buildColumns(collaborators, refresh) {
   const nameOf = (id) => (collaborators.find((c) => c.id === id) || {}).nome || '—';
   return [
-    { key: 'id', label: 'ID', className: 'col-id' },
+    { key: 'id', label: 'ID', className: 'col-id', render: (r) => (r.arquivada ? el('span', {}, [r.id, ' ', el('span', { class: 'badge badge--neutral', text: 'Arquivado' })]) : r.id) },
     { key: 'colaboradorId', label: 'Colaborador', render: (r) => nameOf(r.colaboradorId) },
     { key: 'assunto', label: 'Assunto / entrega' },
     { key: 'prioridade', label: 'Prioridade', render: (r) => badgeDot(r.prioridade, PRIORIDADE_LABEL[r.prioridade]) },
@@ -154,6 +166,21 @@ function rowActions(fup, refresh) {
     wrap.appendChild(iconBtn('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(fup); }));
   } else {
     wrap.appendChild(iconBtn('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenFup(fup.id); showToast(`FUP ${fup.id} reaberto.`); }));
+  }
+  if (fup.arquivada) {
+    wrap.appendChild(iconBtn('upload', 'Desarquivar', async (e) => {
+      e.stopPropagation();
+      await store.unarchiveFup(fup.id);
+      showToast(`FUP ${fup.id} desarquivado.`, { undo: () => store.archiveFup(fup.id) });
+      refresh();
+    }));
+  } else {
+    wrap.appendChild(iconBtn('archive', 'Arquivar', async (e) => {
+      e.stopPropagation();
+      await store.archiveFup(fup.id);
+      showToast(`FUP ${fup.id} arquivado.`, { undo: () => store.unarchiveFup(fup.id) });
+      refresh();
+    }));
   }
   wrap.appendChild(iconBtn('edit', 'Editar', (e) => { e.stopPropagation(); openFupForm(fup, refresh); }));
   return wrap;

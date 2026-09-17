@@ -154,7 +154,7 @@ export async function setCollaboratorActive(id, ativo) {
 }
 
 export async function collaboratorStats(id) {
-  const fups = (await db.getAll('fups')).filter((f) => !f.deletedFlag && f.colaboradorId === id);
+  const fups = (await db.getAll('fups')).filter((f) => !f.deletedFlag && !f.arquivada && f.colaboradorId === id);
   const abertos = fups.filter((f) => isOpenStatus(f.status));
   const atrasados = abertos.filter((f) => isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal'));
   const aguardando = abertos.filter((f) => f.status === 'aguardando_retorno');
@@ -164,6 +164,22 @@ export async function collaboratorStats(id) {
 // =======================================================================
 // TAREFAS
 // =======================================================================
+
+/**
+ * Regra de visibilidade do arquivamento, comum a tarefas e FUPs: itens
+ * arquivados somem de TODAS as listagens e agregações (dashboard, hoje,
+ * foco do dia, busca global, e-mail executivo) porque todas elas passam
+ * por listTasks()/listFups() sem filtro. Para vê-los é preciso pedir
+ * explicitamente: `somenteArquivadas` (só os arquivados) ou
+ * `includeArchived` (arquivados + ativos). Arquivar nunca apaga nada —
+ * o registro continua no banco e pode ser desarquivado a qualquer momento.
+ */
+function matchesArchiveFilter(item, filters = {}) {
+  if (filters.somenteArquivadas) return !!item.arquivada;
+  if (filters.includeArchived) return true;
+  return !item.arquivada;
+}
+
 function matchesCommonFilters(item, filters, dateField) {
   if (!filters) return true;
   if (filters.status) {
@@ -202,7 +218,7 @@ function matchesCommonFilters(item, filters, dateField) {
 
 export async function listTasks(filters = {}) {
   const all = await db.getAll('tasks');
-  const visible = all.filter((t) => !t.deletedFlag && (filters.includeArchived || !t.arquivada));
+  const visible = all.filter((t) => !t.deletedFlag && matchesArchiveFilter(t, filters));
   return visible.filter((t) => matchesCommonFilters(t, filters, 'prazo'));
 }
 
@@ -313,12 +329,23 @@ export async function archiveTask(id) {
   return updated;
 }
 
+/** Traz a tarefa de volta às listagens normais (desfaz o arquivamento). */
+export async function unarchiveTask(id) {
+  const current = await db.getOne('tasks', id);
+  if (!current) throw new Error('Tarefa não encontrada.');
+  const updated = { ...current, arquivada: false, atualizadoEm: nowISO() };
+  await db.putOne('tasks', updated);
+  await recordAudit({ tipoAcao: 'desarquivamento', tipoRegistro: 'task', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'task:unarchive', record: updated });
+  return updated;
+}
+
 // =======================================================================
 // FUPs (Follow-ups)
 // =======================================================================
 export async function listFups(filters = {}) {
   const all = await db.getAll('fups');
-  const visible = all.filter((f) => !f.deletedFlag);
+  const visible = all.filter((f) => !f.deletedFlag && matchesArchiveFilter(f, filters));
   return visible.filter((f) => matchesCommonFilters(f, filters, 'proximoFupEm'));
 }
 
@@ -417,6 +444,31 @@ export async function setNextFupDate(id, date) {
   await db.putOne('fups', updated);
   await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'fup', idRegistro: id, valorAnterior: current, valorNovo: updated });
   emit({ type: 'fup:update', record: updated });
+  return updated;
+}
+
+export async function archiveFup(id) {
+  const current = await db.getOne('fups', id);
+  if (!current) throw new Error('FUP não encontrado.');
+  const ts = nowISO();
+  const historico = [...current.historico, makeFupHistoryEntry({ tipo: 'arquivamento', texto: 'FUP arquivado.' })];
+  const updated = { ...current, arquivada: true, atualizadoEm: ts, historico };
+  await db.putOne('fups', updated);
+  await recordAudit({ tipoAcao: 'arquivamento', tipoRegistro: 'fup', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'fup:archive', record: updated });
+  return updated;
+}
+
+/** Traz o FUP de volta às listagens normais (desfaz o arquivamento). */
+export async function unarchiveFup(id) {
+  const current = await db.getOne('fups', id);
+  if (!current) throw new Error('FUP não encontrado.');
+  const ts = nowISO();
+  const historico = [...current.historico, makeFupHistoryEntry({ tipo: 'desarquivamento', texto: 'FUP desarquivado.' })];
+  const updated = { ...current, arquivada: false, atualizadoEm: ts, historico };
+  await db.putOne('fups', updated);
+  await recordAudit({ tipoAcao: 'desarquivamento', tipoRegistro: 'fup', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'fup:unarchive', record: updated });
   return updated;
 }
 
@@ -626,6 +678,7 @@ export async function getTodayItems() {
 
 function focusScore(item, dateField) {
   let score = 0;
+  if (item.status === 'urgente') score += 8;
   if (item.prioridade === 'alta') score += 5;
   if (isOverdue(item, dateField)) score += 4;
   if (isToday(item[dateField])) score += 3;
@@ -679,6 +732,7 @@ export async function getDashboardStats() {
     fupsAbertos: openFups.length,
     itensHoje: openTasks.filter((t) => isToday(t.prazo)).length + openFups.filter((f) => isToday(f.proximoFupEm) || isToday(f.prazoFinal)).length + agenda.filter((a) => isToday(a.data) && isOpenStatus(a.status)).length,
     atrasados: overdue.length,
+    urgentes: openTasks.filter((t) => t.status === 'urgente').length + openFups.filter((f) => f.status === 'urgente').length,
     altaPrioridade: openTasks.filter((t) => t.prioridade === 'alta').length + openFups.filter((f) => f.prioridade === 'alta').length,
     aguardandoRetorno: openFups.filter((f) => f.status === 'aguardando_retorno').length + openTasks.filter((t) => t.status === 'aguardando_retorno').length,
     agendaHoje: annotateConflicts(agenda.filter((a) => isToday(a.data))),

@@ -91,3 +91,46 @@ test('inativar colaborador não apaga o cadastro (exclusão lógica)', async () 
   const activeOnly = await store.listCollaborators({ includeInactive: false });
   assert.ok(!activeOnly.some((x) => x.id === c.id));
 });
+
+test('arquivar um FUP o remove das listagens e do painel por colaborador; desarquivar o traz de volta', async () => {
+  const colaborador = await store.createCollaborator({ nome: 'Colaborador do arquivo' });
+  const fup = await store.createFup({ colaboradorId: colaborador.id, assunto: 'Entrega a arquivar', proximoFupEm: '2020-03-03' });
+  assert.equal(fup.arquivada, false);
+  assert.ok((await store.listFups()).some((f) => f.id === fup.id));
+  assert.equal((await store.collaboratorStats(colaborador.id)).totalAberto, 1);
+
+  const archived = await store.archiveFup(fup.id);
+  assert.equal(archived.arquivada, true);
+  assert.ok(!(await store.listFups()).some((f) => f.id === fup.id), 'arquivado não aparece na listagem padrão');
+  assert.ok(!(await store.getOverdueItems()).some((i) => i.id === fup.id), 'arquivado não conta como atrasado');
+  assert.equal((await store.collaboratorStats(colaborador.id)).totalAberto, 0);
+  assert.ok(archived.historico.some((h) => h.tipo === 'arquivamento'), 'o arquivamento entra no histórico do FUP');
+
+  assert.ok((await store.listFups({ somenteArquivadas: true })).some((f) => f.id === fup.id));
+  assert.ok(await store.getFup(fup.id), 'arquivar nunca apaga o registro');
+
+  const restored = await store.unarchiveFup(fup.id);
+  assert.equal(restored.arquivada, false);
+  assert.ok((await store.listFups()).some((f) => f.id === fup.id));
+  assert.equal((await store.collaboratorStats(colaborador.id)).totalAberto, 1);
+});
+
+test('editar um FUP arquivado preserva o arquivamento', async () => {
+  const colaborador = await store.createCollaborator({ nome: 'Colaborador do arquivo 2' });
+  const fup = await store.createFup({ colaboradorId: colaborador.id, assunto: 'FUP arquivado e editado' });
+  await store.archiveFup(fup.id);
+  const updated = await store.updateFup(fup.id, { assunto: 'FUP arquivado e editado (revisão)' });
+  assert.equal(updated.arquivada, true);
+});
+
+test('aceita o status urgente em FUPs e recusa status inválido', async () => {
+  const colaborador = await store.createCollaborator({ nome: 'Colaborador urgente' });
+  const fup = await store.createFup({ colaboradorId: colaborador.id, assunto: 'Resposta urgente', status: 'urgente' });
+  assert.equal(fup.status, 'urgente');
+  assert.ok((await store.listFups({ status: 'urgente' })).some((f) => f.id === fup.id));
+
+  await assert.rejects(
+    () => store.createFup({ colaboradorId: colaborador.id, assunto: 'Inválido', status: 'urgentissimo' }),
+    { name: 'ValidationError' }
+  );
+});

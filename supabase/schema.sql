@@ -57,6 +57,7 @@ create table if not exists public.fups (
   "qtdCobrancas" integer not null default 0,
   "ultimoContatoEm" text not null default '',
   historico jsonb not null default '[]',
+  arquivada boolean not null default false,
   "deletedFlag" boolean not null default false
 );
 
@@ -117,6 +118,15 @@ create table if not exists public."auditLog" (
   "valorAnterior" text not null default '',
   "valorNovo" text not null default ''
 );
+
+-- ---------------------------------------------------------------------
+-- Migrações de colunas — para bancos criados por uma versão anterior
+-- deste arquivo, que ainda não tinham as colunas abaixo. Em um banco
+-- novo os create table acima já as criaram e estes comandos não fazem
+-- nada (add column if not exists).
+-- ---------------------------------------------------------------------
+alter table public.tasks add column if not exists arquivada boolean not null default false;
+alter table public.fups  add column if not exists arquivada boolean not null default false;
 
 -- ---------------------------------------------------------------------
 -- Tabelas de apoio (não fazem parte de STORE_NAMES)

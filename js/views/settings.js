@@ -13,7 +13,7 @@ let auditSort = { key: 'dataHora', dir: 'desc' };
 
 const ACAO_LABEL = {
   criacao: 'Criação', edicao: 'Edição', conclusao: 'Conclusão', reabertura: 'Reabertura',
-  cancelamento: 'Cancelamento', arquivamento: 'Arquivamento', restauracao_backup: 'Restauração de backup',
+  cancelamento: 'Cancelamento', arquivamento: 'Arquivamento', desarquivamento: 'Desarquivamento', restauracao_backup: 'Restauração de backup',
 };
 
 export async function render(root) {

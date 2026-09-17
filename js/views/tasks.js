@@ -29,19 +29,19 @@ export async function render(root) {
     renderFilterBar(filterBar, filters, areas, responsaveis, () => { saveSessionFilters(FILTER_KEY, filters); refresh(); });
     let rows = await store.listTasks(filters);
     rows = sortRows(rows);
-    renderBulkBar(bulkBar, refresh);
+    renderBulkBar(bulkBar, refresh, !!filters.somenteArquivadas);
     renderTable(tableHost, {
       columns: buildColumns(refresh),
       rows,
       selectable: true,
       selectedIds,
-      onToggleSelect: (id, checked) => { checked ? selectedIds.add(id) : selectedIds.delete(id); renderBulkBar(bulkBar, refresh); tableHost.querySelectorAll('tr').forEach(()=>{}); },
+      onToggleSelect: (id, checked) => { checked ? selectedIds.add(id) : selectedIds.delete(id); renderBulkBar(bulkBar, refresh, !!filters.somenteArquivadas); },
       onToggleSelectAll: (checked) => { rows.forEach((r) => (checked ? selectedIds.add(r.id) : selectedIds.delete(r.id))); refresh(); },
-      getRowClass: (r) => (isOverdue(r, 'prazo') ? 'is-overdue' : ''),
+      getRowClass: (r) => [isOverdue(r, 'prazo') ? 'is-overdue' : '', r.arquivada ? 'is-archived' : ''].filter(Boolean).join(' '),
       onRowClick: (r) => openTaskForm(r, refresh),
       sortState,
       onSort: (key) => { sortState = nextSortState(sortState, key); refresh(); },
-      emptyMessage: 'Nenhuma tarefa encontrada com os filtros atuais.',
+      emptyMessage: filters.somenteArquivadas ? 'Nenhuma tarefa arquivada.' : 'Nenhuma tarefa encontrada com os filtros atuais.',
     });
   }
 
@@ -58,11 +58,11 @@ function buildHeader() {
 }
 
 async function distinctAreas() {
-  const all = await store.listTasks({});
+  const all = await store.listTasks({ includeArchived: true });
   return Array.from(new Set(all.map((t) => t.area).filter(Boolean))).sort();
 }
 async function distinctResponsaveis() {
-  const all = await store.listTasks({});
+  const all = await store.listTasks({ includeArchived: true });
   return Array.from(new Set(all.map((t) => t.responsavel).filter(Boolean))).sort();
 }
 
@@ -75,6 +75,9 @@ function renderFilterBar(container, filters, areas, responsaveis, onChange) {
     const chip = el('button', { class: `filter-chip${filters.periodo === value ? ' is-active' : ''}`, type: 'button', text: label, onClick: () => { filters.periodo = filters.periodo === value ? '' : value; onChange(); } });
     container.appendChild(chip);
   }
+  // Arquivadas ficam fora de todas as listagens: só aparecem quando este
+  // chip está ligado, e aí a tela mostra SOMENTE elas.
+  container.appendChild(el('button', { class: `filter-chip${filters.somenteArquivadas ? ' is-active' : ''}`, type: 'button', text: 'Arquivadas', onClick: () => { filters.somenteArquivadas = !filters.somenteArquivadas; selectedIds.clear(); onChange(); } }));
 
   const search = el('input', { type: 'search', placeholder: 'Buscar por título, área, tag...' });
   search.value = filters.search || '';
@@ -106,7 +109,7 @@ function sortRows(rows) {
   return sortBy(rows, keyFn, sortState.dir);
 }
 
-function renderBulkBar(container, refresh) {
+function renderBulkBar(container, refresh, showingArchived = false) {
   container.innerHTML = '';
   if (!selectedIds.size) return;
   const bar = el('div', { class: 'bulk-bar' }, [
@@ -121,6 +124,15 @@ function renderBulkBar(container, refresh) {
       for (const id of selectedIds) await store.cancelTask(id);
       selectedIds.clear(); showToast('Tarefas canceladas.'); refresh();
     } }),
+    el('button', { class: 'btn btn--sm btn--secondary', type: 'button', text: showingArchived ? 'Desarquivar selecionadas' : 'Arquivar selecionadas', onClick: async () => {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) await (showingArchived ? store.unarchiveTask(id) : store.archiveTask(id));
+      selectedIds.clear();
+      showToast(showingArchived ? 'Tarefas desarquivadas.' : 'Tarefas arquivadas.', {
+        undo: () => Promise.all(ids.map((id) => (showingArchived ? store.archiveTask(id) : store.unarchiveTask(id)))),
+      });
+      refresh();
+    } }),
     el('button', { class: 'btn btn--sm btn--ghost', type: 'button', text: 'Limpar seleção', onClick: () => { selectedIds.clear(); refresh(); } }),
   ]);
   container.appendChild(bar);
@@ -128,7 +140,7 @@ function renderBulkBar(container, refresh) {
 
 function buildColumns(refresh) {
   return [
-    { key: 'id', label: 'ID', className: 'col-id' },
+    { key: 'id', label: 'ID', className: 'col-id', render: (r) => (r.arquivada ? el('span', {}, [r.id, ' ', el('span', { class: 'badge badge--neutral', text: 'Arquivada' })]) : r.id) },
     { key: 'titulo', label: 'Título', render: (r) => r.titulo },
     { key: 'area', label: 'Área' },
     { key: 'responsavel', label: 'Responsável' },
@@ -165,6 +177,21 @@ function rowActions(task, refresh) {
     wrap.appendChild(iconBtn('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(task, refresh); }));
   } else {
     wrap.appendChild(iconBtn('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenTask(task.id); showToast(`Tarefa ${task.id} reaberta.`); }));
+  }
+  if (task.arquivada) {
+    wrap.appendChild(iconBtn('upload', 'Desarquivar', async (e) => {
+      e.stopPropagation();
+      await store.unarchiveTask(task.id);
+      showToast(`Tarefa ${task.id} desarquivada.`, { undo: () => store.archiveTask(task.id) });
+      refresh();
+    }));
+  } else {
+    wrap.appendChild(iconBtn('archive', 'Arquivar', async (e) => {
+      e.stopPropagation();
+      await store.archiveTask(task.id);
+      showToast(`Tarefa ${task.id} arquivada.`, { undo: () => store.unarchiveTask(task.id) });
+      refresh();
+    }));
   }
   wrap.appendChild(iconBtn('edit', 'Editar', (e) => { e.stopPropagation(); openTaskForm(task, refresh); }));
   return wrap;

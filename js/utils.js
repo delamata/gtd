@@ -266,6 +266,7 @@ export const PRIORIDADE_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' 
 export const PRIORIDADE_ORDEM = { alta: 0, media: 1, baixa: 2 };
 
 export const TASK_STATUS_LABEL = {
+  urgente: 'Urgente',
   a_fazer: 'A fazer',
   em_andamento: 'Em andamento',
   aguardando_retorno: 'Aguardando retorno',
@@ -277,6 +278,7 @@ export const TASK_STATUS_LABEL = {
 };
 
 export const FUP_STATUS_LABEL = {
+  urgente: 'Urgente',
   a_fazer: 'A fazer',
   em_andamento: 'Em andamento',
   aguardando_retorno: 'Aguardando retorno',
@@ -306,6 +308,7 @@ export const RECORRENCIA_LABEL = {
 
 /** Classe visual (badge) para um status, unificando tarefas/FUPs/agenda. */
 export function statusBadgeClass(status) {
+  if (status === 'urgente') return 'badge--danger';
   if (status === 'concluido') return 'badge--success';
   if (status === 'cancelado') return 'badge--neutral';
   if (status === 'aguardando_retorno' || status === 'a_confirmar' || status === 'nao_agendada') return 'badge--warning';
