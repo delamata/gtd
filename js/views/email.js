@@ -56,7 +56,7 @@ function buildFiltersCard(container, collaborators, areas, responsaveis, onChang
   grid.appendChild(selectField('Responsável', 'responsavel', [{ value: '', label: 'Todos' }, ...responsaveis.map((r) => ({ value: r, label: r }))], filters.responsavel, (v) => { filters.responsavel = v; onChange(); }));
   grid.appendChild(selectField('Colaborador', 'colaboradorId', [{ value: '', label: 'Todos' }, ...collaborators.map((c) => ({ value: c.id, label: c.nome }))], filters.colaboradorId, (v) => { filters.colaboradorId = v; onChange(); }));
 
-  grid.appendChild(checkbox('Somente alta prioridade', filters.somenteAltaPrioridade, (v) => { filters.somenteAltaPrioridade = v; onChange(); }));
+  grid.appendChild(checkbox('Somente urgente / alta prioridade', filters.somenteAltaPrioridade, (v) => { filters.somenteAltaPrioridade = v; onChange(); }));
   grid.appendChild(checkbox('Incluir itens concluídos', filters.incluirConcluidos, (v) => { filters.incluirConcluidos = v; onChange(); }));
   grid.appendChild(checkbox('Incluir itens cancelados', filters.incluirCancelados, (v) => { filters.incluirCancelados = v; onChange(); }));
 

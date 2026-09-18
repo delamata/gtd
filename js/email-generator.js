@@ -25,7 +25,7 @@ function passesScopeFilters(item, filters, { colaboradorId } = {}) {
   // O filtro por colaborador só se aplica a itens que de fato têm colaborador vinculado (FUPs).
   // Tarefas (sem colaboradorId) não são descartadas por esse filtro.
   if (filters.colaboradorId && colaboradorId !== undefined && colaboradorId !== filters.colaboradorId) return false;
-  if (filters.somenteAltaPrioridade && item.prioridade && item.prioridade !== 'alta') return false;
+  if (filters.somenteAltaPrioridade && item.prioridade && !['urgente', 'alta'].includes(item.prioridade)) return false;
   return true;
 }
 
@@ -65,8 +65,8 @@ export async function generateExecutiveEmail(filters = {}) {
     ...scopedFups.filter((f) => f.status === 'a_confirmar').map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
   ];
   const riscos = [
-    ...scopedTasks.filter((t) => isOpenStatus(t.status) && (isOverdue(t, 'prazo') || t.status === 'a_confirmar' || t.status === 'urgente')),
-    ...scopedFups.filter((f) => isOpenStatus(f.status) && (isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal') || f.dependencia || f.status === 'urgente')).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
+    ...scopedTasks.filter((t) => isOpenStatus(t.status) && (isOverdue(t, 'prazo') || t.status === 'a_confirmar' || store.isUrgente(t))),
+    ...scopedFups.filter((f) => isOpenStatus(f.status) && (isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal') || f.dependencia || store.isUrgente(f))).map((f) => ({ ...f, titulo: f.assunto, colaborador: colaboradorNome(f.colaboradorId) })),
   ];
   const prazosRelevantes = [
     ...scopedTasks.filter((t) => isOpenStatus(t.status) && (withinPeriod(t.prazo, de, ate) || isWithinNextDays(t.prazo, 7))),

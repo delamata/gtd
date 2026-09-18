@@ -262,8 +262,8 @@ export function uiId() {
   return 'ui-' + Math.random().toString(36).slice(2, 10);
 }
 
-export const PRIORIDADE_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
-export const PRIORIDADE_ORDEM = { alta: 0, media: 1, baixa: 2 };
+export const PRIORIDADE_LABEL = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+export const PRIORIDADE_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 
 export const TASK_STATUS_LABEL = {
   urgente: 'Urgente',

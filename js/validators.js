@@ -49,7 +49,7 @@ export function isValidTime(value) {
 const TASK_STATUS = new Set(['urgente', 'a_fazer', 'em_andamento', 'aguardando_retorno', 'a_confirmar', 'nao_iniciado', 'agendado', 'concluido', 'cancelado']);
 const FUP_STATUS = new Set(['urgente', 'a_fazer', 'em_andamento', 'aguardando_retorno', 'a_confirmar', 'nao_iniciado', 'nao_agendada', 'concluido', 'cancelado']);
 const AGENDA_STATUS = new Set(['agendado', 'sem_atualizacao', 'em_andamento', 'concluido', 'cancelado']);
-const PRIORIDADES = new Set(['alta', 'media', 'baixa']);
+const PRIORIDADES = new Set(['urgente', 'alta', 'media', 'baixa']);
 const RECORRENCIAS = new Set(['nenhuma', 'diaria', 'semanal', 'quinzenal', 'mensal', 'personalizada']);
 
 function baseResult() {

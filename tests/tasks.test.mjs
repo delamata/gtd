@@ -139,3 +139,24 @@ test('aceita o status urgente em tarefas e o prioriza no foco do dia', async () 
 
   await assert.rejects(() => store.createTask({ titulo: 'Status inexistente', status: 'urgentissimo' }), { name: 'ValidationError' });
 });
+
+test('aceita a prioridade urgente, ordena acima de alta e conta no dashboard', async () => {
+  const { PRIORIDADE_ORDEM } = await import('../js/utils.js');
+  assert.ok(PRIORIDADE_ORDEM.urgente < PRIORIDADE_ORDEM.alta, 'urgente vem antes de alta na ordenação');
+
+  const task = await store.createTask({ titulo: 'Prioridade máxima', prioridade: 'urgente', status: 'a_fazer' });
+  assert.equal(task.prioridade, 'urgente');
+  assert.ok((await store.listTasks({ prioridade: 'urgente' })).some((t) => t.id === task.id));
+
+  const stats = await store.getDashboardStats();
+  assert.ok(stats.urgentes >= 1, 'prioridade urgente entra no contador de urgentes');
+  assert.ok(stats.distribuicaoPrioridade.urgente >= 1);
+
+  await assert.rejects(() => store.createTask({ titulo: 'Prioridade inválida', prioridade: 'altissima' }), { name: 'ValidationError' });
+});
+
+test('isUrgente cobre os dois eixos: status urgente e prioridade urgente', async () => {
+  assert.equal(store.isUrgente({ status: 'urgente', prioridade: 'baixa' }), true);
+  assert.equal(store.isUrgente({ status: 'a_fazer', prioridade: 'urgente' }), true);
+  assert.equal(store.isUrgente({ status: 'a_fazer', prioridade: 'alta' }), false);
+});

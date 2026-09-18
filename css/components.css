@@ -85,6 +85,9 @@
 .badge--dot::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
 
 .priority-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; flex-shrink: 0; }
+/* Urgente: além da cor mais fechada, ganha um halo para se distinguir de
+   "Alta" mesmo num ponto de 8px (ou para quem não diferencia os vermelhos). */
+.priority-dot--urgente { background: var(--color-priority-urgente); box-shadow: 0 0 0 2px rgba(122, 12, 22, 0.28); }
 .priority-dot--alta { background: var(--color-priority-alta); }
 .priority-dot--media { background: var(--color-priority-media); }
 .priority-dot--baixa { background: var(--color-priority-baixa); }

@@ -676,9 +676,20 @@ export async function getTodayItems() {
   };
 }
 
+/**
+ * "Urgente" existe em dois eixos independentes: como status (o item está
+ * pegando fogo agora) e como prioridade (é o mais importante da fila).
+ * Qualquer um dos dois torna o item urgente para efeito de contagem e
+ * de destaque nas telas.
+ */
+export function isUrgente(item) {
+  return item.status === 'urgente' || item.prioridade === 'urgente';
+}
+
 function focusScore(item, dateField) {
   let score = 0;
   if (item.status === 'urgente') score += 8;
+  if (item.prioridade === 'urgente') score += 7;
   if (item.prioridade === 'alta') score += 5;
   if (isOverdue(item, dateField)) score += 4;
   if (isToday(item[dateField])) score += 3;
@@ -732,7 +743,7 @@ export async function getDashboardStats() {
     fupsAbertos: openFups.length,
     itensHoje: openTasks.filter((t) => isToday(t.prazo)).length + openFups.filter((f) => isToday(f.proximoFupEm) || isToday(f.prazoFinal)).length + agenda.filter((a) => isToday(a.data) && isOpenStatus(a.status)).length,
     atrasados: overdue.length,
-    urgentes: openTasks.filter((t) => t.status === 'urgente').length + openFups.filter((f) => f.status === 'urgente').length,
+    urgentes: [...openTasks, ...openFups].filter(isUrgente).length,
     altaPrioridade: openTasks.filter((t) => t.prioridade === 'alta').length + openFups.filter((f) => f.prioridade === 'alta').length,
     aguardandoRetorno: openFups.filter((f) => f.status === 'aguardando_retorno').length + openTasks.filter((t) => t.status === 'aguardando_retorno').length,
     agendaHoje: annotateConflicts(agenda.filter((a) => isToday(a.data))),

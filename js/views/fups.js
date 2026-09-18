@@ -2,7 +2,7 @@
 // views/fups.js — lista de FUPs (follow-ups), cobranças e histórico
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, formatDateTimeBR, isOverdue, diffDaysISO, todayISO, FUP_STATUS_LABEL, PRIORIDADE_LABEL, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
+import { el, formatDateBR, formatDateTimeBR, isOverdue, diffDaysISO, todayISO, FUP_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
 import { icon } from '../components/icons.js';
 import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -95,7 +95,7 @@ function makeSelect(label, filters, key, options, onChange) {
 
 function sortRows(rows) {
   const keyFn = {
-    id: (r) => r.id, assunto: (r) => r.assunto, prioridade: (r) => ({ alta: 0, media: 1, baixa: 2 }[r.prioridade] ?? 9),
+    id: (r) => r.id, assunto: (r) => r.assunto, prioridade: (r) => PRIORIDADE_ORDEM[r.prioridade] ?? 9,
     status: (r) => r.status, proximoFupEm: (r) => r.proximoFupEm || '9999', qtdCobrancas: (r) => r.qtdCobrancas,
   }[sortState.key] || ((r) => r.proximoFupEm || '9999');
   return sortBy(rows, keyFn, sortState.dir);

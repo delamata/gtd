@@ -31,6 +31,7 @@
   --color-info-bg: var(--color-blue-light);
 
   /* Prioridades */
+  --color-priority-urgente: #7A0C16;
   --color-priority-alta: #B3261E;
   --color-priority-media: #8A5A00;
   --color-priority-baixa: #1E7A3E;

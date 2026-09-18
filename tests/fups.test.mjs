@@ -134,3 +134,15 @@ test('aceita o status urgente em FUPs e recusa status inválido', async () => {
     { name: 'ValidationError' }
   );
 });
+
+test('aceita a prioridade urgente em FUPs', async () => {
+  const colaborador = await store.createCollaborator({ nome: 'Colaborador prioridade' });
+  const fup = await store.createFup({ colaboradorId: colaborador.id, assunto: 'Entrega prioritária', prioridade: 'urgente' });
+  assert.equal(fup.prioridade, 'urgente');
+  assert.ok((await store.listFups({ prioridade: 'urgente' })).some((f) => f.id === fup.id));
+
+  await assert.rejects(
+    () => store.createFup({ colaboradorId: colaborador.id, assunto: 'Inválida', prioridade: 'altissima' }),
+    { name: 'ValidationError' }
+  );
+});

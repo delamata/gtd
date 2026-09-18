@@ -3,7 +3,7 @@
 // ==========================================================================
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-export const PRIORITY_COLORS = { alta: '#B3261E', media: '#8A5A00', baixa: '#1E7A3E', 'não definido': '#B7C6D1' };
+export const PRIORITY_COLORS = { urgente: '#7A0C16', alta: '#B3261E', media: '#8A5A00', baixa: '#1E7A3E', 'não definido': '#B7C6D1' };
 export const STATUS_COLORS = {
   urgente: '#B3261E', a_fazer: '#1E425F', em_andamento: '#1E425F', aguardando_retorno: '#8A5A00', a_confirmar: '#8A5A00',
   nao_iniciado: '#B7C6D1', nao_agendada: '#B7C6D1', agendado: '#1E425F', concluido: '#1E7A3E', cancelado: '#B7C6D1',

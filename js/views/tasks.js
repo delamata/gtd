@@ -2,7 +2,7 @@
 // views/tasks.js — lista de tarefas, criação/edição, conclusão e recorrência
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, isOverdue, TASK_STATUS_LABEL, PRIORIDADE_LABEL, RECORRENCIA_LABEL, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
+import { el, formatDateBR, isOverdue, TASK_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, RECORRENCIA_LABEL, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
 import { icon } from '../components/icons.js';
 import { openModal, closeActiveModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -104,7 +104,7 @@ function makeSelect(label, filters, key, options, onChange) {
 function sortRows(rows) {
   const keyFn = {
     id: (r) => r.id, titulo: (r) => r.titulo, area: (r) => r.area, responsavel: (r) => r.responsavel,
-    prioridade: (r) => ({ alta: 0, media: 1, baixa: 2 }[r.prioridade] ?? 9), status: (r) => r.status, prazo: (r) => r.prazo || '9999',
+    prioridade: (r) => PRIORIDADE_ORDEM[r.prioridade] ?? 9, status: (r) => r.status, prazo: (r) => r.prazo || '9999',
   }[sortState.key] || ((r) => r.prazo || '9999');
   return sortBy(rows, keyFn, sortState.dir);
 }

@@ -33,9 +33,17 @@ sabe qual dos dois está ativo.
   **"Arquivadas" / "Arquivados"** na barra de filtros mostra só os
   arquivados, com a ação de desarquivar. Também funciona em lote, pela
   barra de seleção múltipla.
-- **Status "Urgente"**: disponível em tarefas e FUPs, aparece com selo
-  vermelho, tem card próprio no Dashboard, sobe ao topo do "Foco do dia"
-  e entra na seção "Riscos e bloqueios" do e-mail executivo.
+- **"Urgente"** existe em dois eixos independentes, ambos em tarefas e
+  FUPs:
+  - como **status** (o item está pegando fogo agora) — selo vermelho na
+    listagem;
+  - como **prioridade** (é o mais importante da fila) — acima de "Alta",
+    com ponto vermelho-escuro e halo.
+
+  Qualquer um dos dois faz o item contar no card "Urgentes" do Dashboard,
+  subir ao topo do "Foco do dia" e entrar na seção "Riscos e bloqueios"
+  do e-mail executivo (inclusive com o filtro "Somente urgente / alta
+  prioridade" ligado).
 
 > Se o seu banco Supabase foi criado antes desta versão, rode de novo o
 > [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor — ele cria a
