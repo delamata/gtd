@@ -2,6 +2,8 @@
 // icons.js — ícones SVG locais (sem fontes de ícone externas), estilo
 // stroke 24x24 semelhante ao usado em painéis executivos.
 // ==========================================================================
+import { el } from '../utils.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Cada ícone é definido como uma lista de primitivas SVG (tag + atributos).
@@ -154,4 +156,10 @@ export function icon(name, { size = 18, className = '', strokeWidth = 2 } = {}) 
   return svg;
 }
 
-export const ICON_NAMES = Object.keys(ICONS);
+/**
+ * Botão compacto só com ícone — o padrão das colunas de ação das tabelas.
+ * Estava duplicado (idêntico) em cinco views.
+ */
+export function iconButton(name, label, onClick) {
+  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
+}

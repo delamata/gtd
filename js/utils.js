@@ -133,26 +133,6 @@ export function isOverdue(item, dateField) {
   return isPastDate(date);
 }
 
-/** Debounce simples. */
-export function debounce(fn, wait = 250) {
-  let t = null;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), wait);
-  };
-}
-
-/** Agrupa um array por uma função-chave. */
-export function groupBy(arr, keyFn) {
-  const map = new Map();
-  for (const item of arr) {
-    const key = keyFn(item);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(item);
-  }
-  return map;
-}
-
 /** Ordena (nova cópia) por uma função-chave, com direção. */
 export function sortBy(arr, keyFn, dir = 'asc') {
   const copy = [...arr];
@@ -236,30 +216,6 @@ export async function copyToClipboard(text) {
       return false;
     }
   }
-}
-
-/** Trunca texto com reticências. */
-export function truncate(str, max = 80) {
-  if (!str) return '';
-  return str.length > max ? str.slice(0, max - 1) + '…' : str;
-}
-
-/** Compara dois horários HH:mm (retorna -1, 0, 1). */
-export function compareTime(a, b) {
-  if (!a && !b) return 0;
-  if (!a) return 1;
-  if (!b) return -1;
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-
-/** Deep clone via JSON (suficiente para os dados planos deste app). */
-export function deepClone(obj) {
-  return obj === undefined ? undefined : JSON.parse(JSON.stringify(obj));
-}
-
-/** Gera um id de correlação curto para uso em UI (não usado como ID de negócio). */
-export function uiId() {
-  return 'ui-' + Math.random().toString(36).slice(2, 10);
 }
 
 export const PRIORIDADE_LABEL = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };

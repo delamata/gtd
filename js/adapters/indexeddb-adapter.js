@@ -118,12 +118,6 @@ export async function getAll(storeName) {
   return withStores([storeName], 'readonly', (tx) => promisifyRequest(tx.objectStore(storeName).getAll()));
 }
 
-export async function getAllByIndex(storeName, indexName, query) {
-  return withStores([storeName], 'readonly', (tx) =>
-    promisifyRequest(tx.objectStore(storeName).index(indexName).getAll(query))
-  );
-}
-
 export async function getOne(storeName, key) {
   return withStores([storeName], 'readonly', (tx) => promisifyRequest(tx.objectStore(storeName).get(key)));
 }

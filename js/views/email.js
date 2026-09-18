@@ -6,7 +6,6 @@ import { generateExecutiveEmail } from '../email-generator.js';
 import { el, downloadTextFile, copyToClipboard, todayISO } from '../utils.js';
 import { icon } from '../components/icons.js';
 import { showToast } from '../components/toast.js';
-import { toOptions } from '../components/forms.js';
 
 const filters = { periodo: 'hoje', de: todayISO(), ate: todayISO(), area: '', responsavel: '', colaboradorId: '', somenteAltaPrioridade: false, incluirConcluidos: true, incluirCancelados: false };
 let format = 'texto'; // 'texto' | 'html'

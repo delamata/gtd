@@ -9,7 +9,7 @@ import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeHistoryEntry, 
 import { validateTask, validateFup, validateAgenda, validateCollaborator, sanitizeText } from './validators.js';
 import {
   nowISO, todayISO, addDaysISO, addMonthsISO, diffDaysISO, isOverdue, isOpenStatus,
-  isToday, isTomorrow, isThisWeek, isWithinNextDays, sortBy, deepClone, PRIORIDADE_ORDEM,
+  isToday, isTomorrow, isThisWeek, isWithinNextDays, sortBy, PRIORIDADE_ORDEM,
 } from './utils.js';
 import { SEED_COLLABORATORS, SEED_TASKS, SEED_FUPS, SEED_HISTORY } from '../data/seed-data.js';
 import * as backup from './backup.js';
@@ -326,6 +326,22 @@ export async function archiveTask(id) {
   await db.putOne('tasks', updated);
   await recordAudit({ tipoAcao: 'arquivamento', tipoRegistro: 'task', idRegistro: id, valorAnterior: current, valorNovo: updated });
   emit({ type: 'task:archive', record: updated });
+  return updated;
+}
+
+/**
+ * Exclusão lógica: marca o registro como apagado. Todas as listagens já
+ * filtram por `!deletedFlag`, então ele some de tudo — inclusive do filtro
+ * de arquivadas — mas continua no banco e na auditoria, recuperável por
+ * backup. Diferente de arquivar, que é reversível pela interface.
+ */
+export async function deleteTask(id) {
+  const current = await db.getOne('tasks', id);
+  if (!current) throw new Error('Tarefa não encontrada.');
+  const updated = { ...current, deletedFlag: true, atualizadoEm: nowISO() };
+  await db.putOne('tasks', updated);
+  await recordAudit({ tipoAcao: 'exclusao', tipoRegistro: 'task', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'task:delete', record: updated });
   return updated;
 }
 
@@ -725,8 +741,7 @@ export async function getFupsByCollaboratorSummary() {
     const atrasados = abertos.filter((f) => isOverdue(f, 'proximoFupEm') || isOverdue(f, 'prazoFinal'));
     const aguardando = abertos.filter((f) => f.status === 'aguardando_retorno');
     const proximo = sortBy(abertos.filter((f) => f.proximoFupEm), (f) => f.proximoFupEm)[0];
-    const critico = sortBy(atrasados.length ? atrasados : abertos, (f) => -(PRIORIDADE_ORDEM[f.prioridade] ?? 9) * -1)
-      .sort((a, b) => (PRIORIDADE_ORDEM[a.prioridade] ?? 9) - (PRIORIDADE_ORDEM[b.prioridade] ?? 9))[0];
+    const critico = sortBy(atrasados.length ? atrasados : abertos, (f) => PRIORIDADE_ORDEM[f.prioridade] ?? 9)[0];
     return { colaborador: c, totalAberto: abertos.length, atrasados: atrasados.length, aguardando: aguardando.length, proximoFup: proximo ? proximo.proximoFupEm : '', itemMaisCritico: critico ? critico.assunto : '' };
   });
 }
@@ -737,7 +752,6 @@ export async function getDashboardStats() {
   const openFups = fups.filter((f) => isOpenStatus(f.status));
   const overdue = await getOverdueItems();
   const today = todayISO();
-  const weekStart = todayISO().slice(0, 8); // apenas para leitura visual, não usado em comparação
   return {
     tarefasAbertas: openTasks.length,
     fupsAbertos: openFups.length,

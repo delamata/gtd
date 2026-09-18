@@ -5,15 +5,14 @@ import * as store from '../store.js';
 import { el, downloadTextFile, formatDateTimeBR, nowISO, sortBy } from '../utils.js';
 import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
-import { field, toOptions, modalFooter } from '../components/forms.js';
+import { field, modalFooter } from '../components/forms.js';
 import { renderTable, nextSortState } from '../components/table.js';
-import { icon } from '../components/icons.js';
 
 let auditSort = { key: 'dataHora', dir: 'desc' };
 
 const ACAO_LABEL = {
   criacao: 'Criação', edicao: 'Edição', conclusao: 'Conclusão', reabertura: 'Reabertura',
-  cancelamento: 'Cancelamento', arquivamento: 'Arquivamento', desarquivamento: 'Desarquivamento', restauracao_backup: 'Restauração de backup',
+  cancelamento: 'Cancelamento', arquivamento: 'Arquivamento', desarquivamento: 'Desarquivamento', exclusao: 'Exclusão', restauracao_backup: 'Restauração de backup',
 };
 
 export async function render(root) {

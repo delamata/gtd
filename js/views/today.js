@@ -2,9 +2,9 @@
 // views/today.js — visão operacional "Hoje": tarefas, FUPs, agenda e atrasos
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, formatDateTimeBR, addDaysISO, todayISO, isOverdue, TASK_STATUS_LABEL, FUP_STATUS_LABEL, PRIORIDADE_LABEL, AGENDA_STATUS_LABEL, statusBadgeClass, priorityDotClass } from '../utils.js';
-import { icon } from '../components/icons.js';
-import { openModal, confirmDialog } from '../components/modal.js';
+import { el, formatDateBR, formatDateTimeBR, addDaysISO, todayISO, TASK_STATUS_LABEL, FUP_STATUS_LABEL, PRIORIDADE_LABEL, AGENDA_STATUS_LABEL, statusBadgeClass, priorityDotClass } from '../utils.js';
+import { icon, iconButton } from '../components/icons.js';
+import { openModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { field, toOptions, modalFooter } from '../components/forms.js';
 import { openTaskForm } from './tasks.js';
@@ -160,13 +160,13 @@ function buildItemRow(item, refresh, { overdue = false } = {}) {
     el('div', { class: 'item-row__actions' }, [
       statusSelect,
       prioritySelect,
-      iconBtn('clock', 'Adiar para amanhã', async () => {
+      iconButton('clock', 'Adiar para amanhã', async () => {
         if (isTask) await store.updateTask(item.id, { prazo: addDaysISO(item._date || todayISO(), 1) });
         else await store.setNextFupDate(item.id, addDaysISO(item._date || todayISO(), 1));
         showToast(`${item.id} adiado para amanhã.`);
       }),
-      iconBtn('completed', 'Concluir', async () => { await quickComplete(item); refresh(); }),
-      iconBtn('edit', 'Observação rápida', () => openQuickNote(item, isTask, refresh)),
+      iconButton('completed', 'Concluir', async () => { await quickComplete(item); refresh(); }),
+      iconButton('edit', 'Observação rápida', () => openQuickNote(item, isTask, refresh)),
     ]),
   ]);
   return row;
@@ -180,10 +180,6 @@ async function quickComplete(item) {
     await store.completeFup(item.id, {});
     showToast(`${item.id} concluído.`, { type: 'success', undo: () => store.reopenFup(item.id) });
   }
-}
-
-function iconBtn(name, label, onClick) {
-  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
 
 function openQuickNote(item, isTask, refresh) {

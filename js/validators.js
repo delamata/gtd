@@ -102,4 +102,3 @@ export function validateCollaborator(data) {
   return r;
 }
 
-export const STATUS_SETS = { TASK_STATUS, FUP_STATUS, AGENDA_STATUS, PRIORIDADES, RECORRENCIAS };

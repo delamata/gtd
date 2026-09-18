@@ -3,7 +3,7 @@
 // ==========================================================================
 import * as store from '../store.js';
 import { el, formatDateTimeBR, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
-import { icon } from '../components/icons.js';
+import { iconButton } from '../components/icons.js';
 import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { field, modalFooter } from '../components/forms.js';
@@ -58,9 +58,9 @@ function renderFilterBar(container, filters, areas, responsaveis, onChange) {
   container.appendChild(de);
   container.appendChild(ate);
 
-  container.appendChild(makeSelect('Categoria', filters, 'categoria', [{ value: '', label: 'Todas as categorias' }, ...Object.entries(CATEGORIA_LABEL).map(([value, label]) => ({ value, label }))], onChange));
-  container.appendChild(makeSelect('Área', filters, 'area', [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange));
-  container.appendChild(makeSelect('Responsável', filters, 'responsavel', [{ value: '', label: 'Todos os responsáveis' }, ...responsaveis.map((r) => ({ value: r, label: r }))], onChange));
+  container.appendChild(filterSelect({ label: 'Categoria', filters, key: 'categoria', options: [{ value: '', label: 'Todas as categorias' }, ...Object.entries(CATEGORIA_LABEL).map(([value, label]) => ({ value, label }))], onChange }));
+  container.appendChild(filterSelect({ label: 'Área', filters, key: 'area', options: [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange }));
+  container.appendChild(filterSelect({ label: 'Responsável', filters, key: 'responsavel', options: [{ value: '', label: 'Todos os responsáveis' }, ...responsaveis.map((r) => ({ value: r, label: r }))], onChange }));
 
   const search = el('input', { type: 'search', placeholder: 'Buscar...' });
   search.value = filters.search || '';
@@ -68,14 +68,6 @@ function renderFilterBar(container, filters, areas, responsaveis, onChange) {
   container.appendChild(search);
 
   container.appendChild(el('button', { class: 'btn btn--ghost btn--sm filter-bar__clear', type: 'button', text: 'Limpar filtros', onClick: () => { for (const k of Object.keys(filters)) delete filters[k]; onChange(); } }));
-}
-
-function makeSelect(label, filters, key, options, onChange) {
-  const select = el('select', { 'aria-label': label });
-  for (const opt of options) select.appendChild(el('option', { value: opt.value, text: opt.label, selected: (filters[key] || '') === opt.value || undefined }));
-  select.value = filters[key] || '';
-  select.addEventListener('change', () => { filters[key] = select.value; onChange(); });
-  return select;
 }
 
 function sortRows(rows) {
@@ -98,9 +90,9 @@ function buildColumns(refresh) {
 
 function rowActions(entry, refresh) {
   const wrap = el('div', { class: 'item-row__actions' });
-  wrap.appendChild(iconBtn('edit', 'Corrigir observação', () => openCorrectionForm(entry, refresh)));
+  wrap.appendChild(iconButton('edit', 'Corrigir observação', () => openCorrectionForm(entry, refresh)));
   if (entry.tipoOrigem !== 'seed') {
-    wrap.appendChild(iconBtn('undo', 'Reabrir item de origem', async () => {
+    wrap.appendChild(iconButton('undo', 'Reabrir item de origem', async () => {
       const ok = await confirmDialog({ title: 'Reabrir item de origem', message: `Reabrir "${entry.atividade}"? A conclusão permanece registrada no histórico.` });
       if (!ok) return;
       try {
@@ -112,10 +104,6 @@ function rowActions(entry, refresh) {
     }));
   }
   return wrap;
-}
-
-function iconBtn(name, label, onClick) {
-  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
 
 function openCorrectionForm(entry, refresh) {

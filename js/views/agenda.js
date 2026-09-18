@@ -2,8 +2,8 @@
 // views/agenda.js — agenda diária/semanal, conflitos e janelas livres
 // ==========================================================================
 import * as store from '../store.js';
-import { el, todayISO, addDaysISO, formatDateBR, formatDateLong, startOfWeekISO, AGENDA_STATUS_LABEL, statusBadgeClass, groupBy, sortBy } from '../utils.js';
-import { icon } from '../components/icons.js';
+import { el, todayISO, addDaysISO, formatDateBR, formatDateLong, startOfWeekISO, AGENDA_STATUS_LABEL, statusBadgeClass, sortBy } from '../utils.js';
+import { icon, iconButton } from '../components/icons.js';
 import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { field, toOptions, modalFooter } from '../components/forms.js';
@@ -102,23 +102,19 @@ function agendaSlot(item, refresh) {
 function actionsFor(item, refresh) {
   const actions = [];
   if (item.status !== 'concluido' && item.status !== 'cancelado') {
-    actions.push(iconBtn('completed', 'Concluir', async () => { await store.completeAgendaItem(item.id); showToast(`Compromisso ${item.id} concluído.`, { type: 'success', undo: () => store.reopenAgendaItem(item.id) }); }));
-    actions.push(iconBtn('close', 'Cancelar', async () => {
+    actions.push(iconButton('completed', 'Concluir', async () => { await store.completeAgendaItem(item.id); showToast(`Compromisso ${item.id} concluído.`, { type: 'success', undo: () => store.reopenAgendaItem(item.id) }); }));
+    actions.push(iconButton('close', 'Cancelar', async () => {
       const ok = await confirmDialog({ title: 'Cancelar compromisso', message: `Cancelar "${item.compromisso}"?`, danger: true });
       if (!ok) return;
       await store.cancelAgendaItem(item.id);
       showToast(`Compromisso ${item.id} cancelado.`, { undo: () => store.reopenAgendaItem(item.id) });
     }));
-    if (item.preparacao) actions.push(iconBtn('arrow-right', 'Transformar preparação em tarefa', async () => { const t = await store.convertPrepToTask(item.id); showToast(`Tarefa ${t.id} criada a partir da preparação.`, { type: 'success' }); }));
+    if (item.preparacao) actions.push(iconButton('arrow-right', 'Transformar preparação em tarefa', async () => { const t = await store.convertPrepToTask(item.id); showToast(`Tarefa ${t.id} criada a partir da preparação.`, { type: 'success' }); }));
   } else {
-    actions.push(iconBtn('undo', 'Reabrir', async () => { await store.reopenAgendaItem(item.id); showToast(`Compromisso ${item.id} reaberto.`); }));
+    actions.push(iconButton('undo', 'Reabrir', async () => { await store.reopenAgendaItem(item.id); showToast(`Compromisso ${item.id} reaberto.`); }));
   }
-  actions.push(iconBtn('edit', 'Editar', () => openAgendaForm(item, refresh)));
+  actions.push(iconButton('edit', 'Editar', () => openAgendaForm(item, refresh)));
   return actions;
-}
-
-function iconBtn(name, label, onClick) {
-  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
 
 async function renderWeek(container, refresh) {

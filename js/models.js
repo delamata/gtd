@@ -4,14 +4,6 @@
 import { nowISO } from './utils.js';
 import { sanitizeText, sanitizeTags } from './validators.js';
 
-export const ID_PREFIXES = {
-  task: 'T',
-  fup: 'F',
-  agenda: 'A',
-  history: 'C',
-  collaborator: 'P',
-};
-
 export function formatId(prefix, n) {
   return `${prefix}${String(n).padStart(3, '0')}`;
 }
@@ -133,7 +125,7 @@ export function makeAuditEntry(id, { tipoAcao, tipoRegistro, idRegistro, valorAn
   return {
     id,
     dataHora: nowISO(),
-    tipoAcao, // criacao | edicao | conclusao | reabertura | cancelamento | arquivamento | desarquivamento | restauracao_backup
+    tipoAcao, // criacao | edicao | conclusao | reabertura | cancelamento | arquivamento | desarquivamento | exclusao | restauracao_backup
     tipoRegistro, // task | fup | agenda | collaborator | history | system
     idRegistro: idRegistro || '',
     valorAnterior: valorAnterior ? JSON.stringify(valorAnterior) : '',

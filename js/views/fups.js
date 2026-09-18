@@ -2,11 +2,12 @@
 // views/fups.js — lista de FUPs (follow-ups), cobranças e histórico
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, formatDateTimeBR, isOverdue, diffDaysISO, todayISO, FUP_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
-import { icon } from '../components/icons.js';
+import { el, formatDateBR, formatDateTimeBR, isOverdue, diffDaysISO, todayISO, FUP_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
+import { icon, iconButton } from '../components/icons.js';
 import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
-import { field, checkboxField, toOptions, modalFooter, tagsToInputValue } from '../components/forms.js';
+import { field, toOptions, filterSelect, modalFooter, tagsToInputValue } from '../components/forms.js';
+import { statusBadge as buildStatusBadge, priorityTag } from '../components/badges.js';
 import { renderTable, nextSortState } from '../components/table.js';
 
 const FILTER_KEY = 'fups';
@@ -77,20 +78,12 @@ function renderFilterBar(container, filters, collaborators, areas, onChange) {
   search.addEventListener('input', () => { filters.search = search.value; onChange(); });
   container.appendChild(search);
 
-  container.appendChild(makeSelect('Status', filters, 'status', [{ value: '', label: 'Todos os status' }, ...toOptions(FUP_STATUS_LABEL)], onChange));
-  container.appendChild(makeSelect('Prioridade', filters, 'prioridade', [{ value: '', label: 'Todas as prioridades' }, ...toOptions(PRIORIDADE_LABEL)], onChange));
-  container.appendChild(makeSelect('Colaborador', filters, 'colaboradorId', [{ value: '', label: 'Todos os colaboradores' }, ...collaborators.map((c) => ({ value: c.id, label: c.nome }))], onChange));
-  container.appendChild(makeSelect('Área', filters, 'area', [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange));
+  container.appendChild(filterSelect({ label: 'Status', filters, key: 'status', options: [{ value: '', label: 'Todos os status' }, ...toOptions(FUP_STATUS_LABEL)], onChange }));
+  container.appendChild(filterSelect({ label: 'Prioridade', filters, key: 'prioridade', options: [{ value: '', label: 'Todas as prioridades' }, ...toOptions(PRIORIDADE_LABEL)], onChange }));
+  container.appendChild(filterSelect({ label: 'Colaborador', filters, key: 'colaboradorId', options: [{ value: '', label: 'Todos os colaboradores' }, ...collaborators.map((c) => ({ value: c.id, label: c.nome }))], onChange }));
+  container.appendChild(filterSelect({ label: 'Área', filters, key: 'area', options: [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange }));
 
   container.appendChild(el('button', { class: 'btn btn--ghost btn--sm filter-bar__clear', type: 'button', text: 'Limpar filtros', onClick: () => { for (const k of Object.keys(filters)) delete filters[k]; onChange(); } }));
-}
-
-function makeSelect(label, filters, key, options, onChange) {
-  const select = el('select', { 'aria-label': label });
-  for (const opt of options) select.appendChild(el('option', { value: opt.value, text: opt.label, selected: (filters[key] || '') === opt.value || undefined }));
-  select.value = filters[key] || '';
-  select.addEventListener('change', () => { filters[key] = select.value; onChange(); });
-  return select;
 }
 
 function sortRows(rows) {
@@ -136,7 +129,7 @@ function buildColumns(collaborators, refresh) {
     { key: 'id', label: 'ID', className: 'col-id', render: (r) => (r.arquivada ? el('span', {}, [r.id, ' ', el('span', { class: 'badge badge--neutral', text: 'Arquivado' })]) : r.id) },
     { key: 'colaboradorId', label: 'Colaborador', render: (r) => nameOf(r.colaboradorId) },
     { key: 'assunto', label: 'Assunto / entrega' },
-    { key: 'prioridade', label: 'Prioridade', render: (r) => badgeDot(r.prioridade, PRIORIDADE_LABEL[r.prioridade]) },
+    { key: 'prioridade', label: 'Prioridade', render: (r) => priorityTag(r.prioridade, PRIORIDADE_LABEL[r.prioridade]) },
     { key: 'status', label: 'Status', render: (r) => statusBadge(r) },
     { key: 'proximoFupEm', label: 'Próximo FUP', render: (r) => dateWithStale(r) },
     { key: 'qtdCobrancas', label: 'Cobranças', render: (r) => String(r.qtdCobrancas || 0) },
@@ -144,12 +137,8 @@ function buildColumns(collaborators, refresh) {
   ];
 }
 
-function badgeDot(prioridade, label) {
-  return el('span', { class: 'u-flex u-gap-2', style: 'align-items:center;' }, [el('span', { class: priorityDotClass(prioridade) }), label]);
-}
-
 function statusBadge(fup) {
-  return el('span', { class: `badge ${statusBadgeClass(fup.status)}`, text: FUP_STATUS_LABEL[fup.status] || fup.status });
+  return buildStatusBadge(fup.status, FUP_STATUS_LABEL[fup.status]);
 }
 
 function dateWithStale(fup) {
@@ -161,33 +150,29 @@ function dateWithStale(fup) {
 function rowActions(fup, refresh) {
   const wrap = el('div', { class: 'item-row__actions' });
   if (fup.status !== 'concluido' && fup.status !== 'cancelado') {
-    wrap.appendChild(iconBtn('bell', 'Cobrei hoje', async (e) => { e.stopPropagation(); await handleCobranca(fup); }));
-    wrap.appendChild(iconBtn('completed', 'Concluir', (e) => { e.stopPropagation(); handleComplete(fup); }));
-    wrap.appendChild(iconBtn('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(fup); }));
+    wrap.appendChild(iconButton('bell', 'Cobrei hoje', async (e) => { e.stopPropagation(); await handleCobranca(fup); }));
+    wrap.appendChild(iconButton('completed', 'Concluir', (e) => { e.stopPropagation(); handleComplete(fup); }));
+    wrap.appendChild(iconButton('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(fup); }));
   } else {
-    wrap.appendChild(iconBtn('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenFup(fup.id); showToast(`FUP ${fup.id} reaberto.`); }));
+    wrap.appendChild(iconButton('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenFup(fup.id); showToast(`FUP ${fup.id} reaberto.`); }));
   }
   if (fup.arquivada) {
-    wrap.appendChild(iconBtn('upload', 'Desarquivar', async (e) => {
+    wrap.appendChild(iconButton('upload', 'Desarquivar', async (e) => {
       e.stopPropagation();
       await store.unarchiveFup(fup.id);
       showToast(`FUP ${fup.id} desarquivado.`, { undo: () => store.archiveFup(fup.id) });
       refresh();
     }));
   } else {
-    wrap.appendChild(iconBtn('archive', 'Arquivar', async (e) => {
+    wrap.appendChild(iconButton('archive', 'Arquivar', async (e) => {
       e.stopPropagation();
       await store.archiveFup(fup.id);
       showToast(`FUP ${fup.id} arquivado.`, { undo: () => store.unarchiveFup(fup.id) });
       refresh();
     }));
   }
-  wrap.appendChild(iconBtn('edit', 'Editar', (e) => { e.stopPropagation(); openFupForm(fup, refresh); }));
+  wrap.appendChild(iconButton('edit', 'Editar', (e) => { e.stopPropagation(); openFupForm(fup, refresh); }));
   return wrap;
-}
-
-function iconBtn(name, label, onClick) {
-  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
 
 async function handleCobranca(fup) {

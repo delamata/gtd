@@ -45,6 +45,19 @@ export function checkboxField({ label, name, checked = false }) {
   return { wrap, input, get value() { return input.checked; } };
 }
 
+/**
+ * <select> ligado a um objeto de filtros: lê `filters[key]`, escreve de
+ * volta na mudança e chama `onChange`. É o select das barras de filtro das
+ * listagens — estava duplicado (idêntico) em três views.
+ */
+export function filterSelect({ label, filters, key, options, onChange }) {
+  const select = el('select', { 'aria-label': label });
+  for (const opt of options) select.appendChild(el('option', { value: opt.value, text: opt.label }));
+  select.value = filters[key] || '';
+  select.addEventListener('change', () => { filters[key] = select.value; onChange(); });
+  return select;
+}
+
 /** Monta um <select> simples de opções [{value,label}]. */
 export function toOptions(map) {
   return Object.entries(map).map(([value, label]) => ({ value, label }));

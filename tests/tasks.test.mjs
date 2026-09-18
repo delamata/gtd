@@ -160,3 +160,15 @@ test('isUrgente cobre os dois eixos: status urgente e prioridade urgente', async
   assert.equal(store.isUrgente({ status: 'a_fazer', prioridade: 'urgente' }), true);
   assert.equal(store.isUrgente({ status: 'a_fazer', prioridade: 'alta' }), false);
 });
+
+test('exclusão lógica remove a tarefa de todas as listagens, inclusive da de arquivadas', async () => {
+  const task = await store.createTask({ titulo: 'Criada por engano' });
+  assert.ok((await store.listTasks()).some((t) => t.id === task.id));
+
+  const deleted = await store.deleteTask(task.id);
+  assert.equal(deleted.deletedFlag, true);
+  assert.ok(!(await store.listTasks()).some((t) => t.id === task.id));
+  assert.ok(!(await store.listTasks({ includeArchived: true })).some((t) => t.id === task.id));
+  assert.ok(!(await store.listTasks({ somenteArquivadas: true })).some((t) => t.id === task.id), 'excluir não é arquivar');
+  assert.ok(!(await store.globalSearch('Criada por engano')).some((r) => r.id === task.id));
+});

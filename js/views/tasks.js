@@ -2,11 +2,12 @@
 // views/tasks.js — lista de tarefas, criação/edição, conclusão e recorrência
 // ==========================================================================
 import * as store from '../store.js';
-import { el, formatDateBR, isOverdue, TASK_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, RECORRENCIA_LABEL, statusBadgeClass, priorityDotClass, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
-import { icon } from '../components/icons.js';
-import { openModal, closeActiveModal, confirmDialog } from '../components/modal.js';
+import { el, formatDateBR, isOverdue, TASK_STATUS_LABEL, PRIORIDADE_LABEL, PRIORIDADE_ORDEM, RECORRENCIA_LABEL, getSessionFilters, saveSessionFilters, sortBy } from '../utils.js';
+import { icon, iconButton } from '../components/icons.js';
+import { openModal, confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
-import { field, checkboxField, toOptions, modalFooter, tagsToInputValue } from '../components/forms.js';
+import { field, checkboxField, toOptions, filterSelect, modalFooter, tagsToInputValue } from '../components/forms.js';
+import { priorityTag } from '../components/badges.js';
 import { renderTable, nextSortState } from '../components/table.js';
 
 const FILTER_KEY = 'tasks';
@@ -84,21 +85,13 @@ function renderFilterBar(container, filters, areas, responsaveis, onChange) {
   search.addEventListener('input', () => { filters.search = search.value; onChange(); });
   container.appendChild(search);
 
-  container.appendChild(makeSelect('Status', filters, 'status', [{ value: '', label: 'Todos os status' }, ...toOptions(TASK_STATUS_LABEL)], onChange));
-  container.appendChild(makeSelect('Prioridade', filters, 'prioridade', [{ value: '', label: 'Todas as prioridades' }, ...toOptions(PRIORIDADE_LABEL)], onChange));
-  container.appendChild(makeSelect('Responsável', filters, 'responsavel', [{ value: '', label: 'Todos os responsáveis' }, ...responsaveis.map((r) => ({ value: r, label: r }))], onChange));
-  container.appendChild(makeSelect('Área', filters, 'area', [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange));
+  container.appendChild(filterSelect({ label: 'Status', filters, key: 'status', options: [{ value: '', label: 'Todos os status' }, ...toOptions(TASK_STATUS_LABEL)], onChange }));
+  container.appendChild(filterSelect({ label: 'Prioridade', filters, key: 'prioridade', options: [{ value: '', label: 'Todas as prioridades' }, ...toOptions(PRIORIDADE_LABEL)], onChange }));
+  container.appendChild(filterSelect({ label: 'Responsável', filters, key: 'responsavel', options: [{ value: '', label: 'Todos os responsáveis' }, ...responsaveis.map((r) => ({ value: r, label: r }))], onChange }));
+  container.appendChild(filterSelect({ label: 'Área', filters, key: 'area', options: [{ value: '', label: 'Todas as áreas' }, ...areas.map((a) => ({ value: a, label: a }))], onChange }));
 
   const clear = el('button', { class: 'btn btn--ghost btn--sm filter-bar__clear', type: 'button', text: 'Limpar filtros', onClick: () => { for (const k of Object.keys(filters)) delete filters[k]; onChange(); } });
   container.appendChild(clear);
-}
-
-function makeSelect(label, filters, key, options, onChange) {
-  const select = el('select', { 'aria-label': label });
-  for (const opt of options) select.appendChild(el('option', { value: opt.value, text: opt.label, selected: (filters[key] || '') === opt.value || undefined }));
-  select.value = filters[key] || '';
-  select.addEventListener('change', () => { filters[key] = select.value; onChange(); });
-  return select;
 }
 
 function sortRows(rows) {
@@ -144,16 +137,12 @@ function buildColumns(refresh) {
     { key: 'titulo', label: 'Título', render: (r) => r.titulo },
     { key: 'area', label: 'Área' },
     { key: 'responsavel', label: 'Responsável' },
-    { key: 'prioridade', label: 'Prioridade', render: (r) => badgeDot(r.prioridade, PRIORIDADE_LABEL[r.prioridade]) },
+    { key: 'prioridade', label: 'Prioridade', render: (r) => priorityTag(r.prioridade, PRIORIDADE_LABEL[r.prioridade]) },
     { key: 'status', label: 'Status', render: (r) => statusSelect(r, 'task', refresh) },
     { key: 'prazo', label: 'Prazo', render: (r) => formatDateBR(r.prazo) },
     { key: 'recorrencia', label: 'Recorrência', render: (r) => RECORRENCIA_LABEL[r.recorrencia] || '—' },
     { key: 'acoes', label: 'Ações', sortable: false, render: (r) => rowActions(r, refresh) },
   ];
-}
-
-function badgeDot(prioridade, label) {
-  return el('span', { class: 'u-flex u-gap-2', style: 'align-items:center;' }, [el('span', { class: priorityDotClass(prioridade) }), label]);
 }
 
 function statusSelect(task, kind, refresh) {
@@ -173,32 +162,28 @@ function statusSelect(task, kind, refresh) {
 function rowActions(task, refresh) {
   const wrap = el('div', { class: 'item-row__actions' });
   if (task.status !== 'concluido' && task.status !== 'cancelado') {
-    wrap.appendChild(iconBtn('completed', 'Concluir', (e) => { e.stopPropagation(); handleComplete(task, refresh); }));
-    wrap.appendChild(iconBtn('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(task, refresh); }));
+    wrap.appendChild(iconButton('completed', 'Concluir', (e) => { e.stopPropagation(); handleComplete(task, refresh); }));
+    wrap.appendChild(iconButton('close', 'Cancelar', (e) => { e.stopPropagation(); handleCancel(task, refresh); }));
   } else {
-    wrap.appendChild(iconBtn('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenTask(task.id); showToast(`Tarefa ${task.id} reaberta.`); }));
+    wrap.appendChild(iconButton('undo', 'Reabrir', async (e) => { e.stopPropagation(); await store.reopenTask(task.id); showToast(`Tarefa ${task.id} reaberta.`); }));
   }
   if (task.arquivada) {
-    wrap.appendChild(iconBtn('upload', 'Desarquivar', async (e) => {
+    wrap.appendChild(iconButton('upload', 'Desarquivar', async (e) => {
       e.stopPropagation();
       await store.unarchiveTask(task.id);
       showToast(`Tarefa ${task.id} desarquivada.`, { undo: () => store.archiveTask(task.id) });
       refresh();
     }));
   } else {
-    wrap.appendChild(iconBtn('archive', 'Arquivar', async (e) => {
+    wrap.appendChild(iconButton('archive', 'Arquivar', async (e) => {
       e.stopPropagation();
       await store.archiveTask(task.id);
       showToast(`Tarefa ${task.id} arquivada.`, { undo: () => store.unarchiveTask(task.id) });
       refresh();
     }));
   }
-  wrap.appendChild(iconBtn('edit', 'Editar', (e) => { e.stopPropagation(); openTaskForm(task, refresh); }));
+  wrap.appendChild(iconButton('edit', 'Editar', (e) => { e.stopPropagation(); openTaskForm(task, refresh); }));
   return wrap;
-}
-
-function iconBtn(name, label, onClick) {
-  return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
 
 async function handleComplete(task, refresh) {
@@ -263,7 +248,7 @@ export function openTaskForm(existing, onSaved) {
     try {
       let record;
       if (isEdit) { const previous = { ...existing }; record = await store.updateTask(existing.id, payload); showToast(`Tarefa ${record.id} atualizada.`, { undo: () => store.updateTask(record.id, previous) }); }
-      else { record = await store.createTask(payload); showToast(`Tarefa ${record.id} criada.`, { type: 'success', undo: () => store.archiveTask(record.id) }); }
+      else { record = await store.createTask(payload); showToast(`Tarefa ${record.id} criada.`, { type: 'success', undo: () => store.deleteTask(record.id) }); }
       modal.close();
       if (onSaved) onSaved(record);
     } catch (err) {

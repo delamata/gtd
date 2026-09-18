@@ -55,9 +55,6 @@ export function openModal({ title, size = 'md', bodyNode, footerNode, onClose, o
   return api;
 }
 
-export function closeActiveModal() {
-  if (activeModal) activeModal.close();
-}
 
 /** Confirmação padronizada (substitui window.confirm nativo, mantém o visual do sistema). */
 export function confirmDialog({ title = 'Confirmar ação', message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false }) {
