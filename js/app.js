@@ -6,6 +6,8 @@ import * as store from './store.js';
 import * as db from './database.js';
 import * as router from './router.js';
 import { supabase } from './supabaseClient.js';
+import { SUPABASE_DASHBOARD_URL } from './supabase-config.js';
+import { probeBackend, isNetworkError, describeBackendError } from './backend-errors.js';
 import { renderLogin } from './views/login.js';
 import { el, clearNode, formatDateLong, todayISO, getPreferences, savePreferences, downloadTextFile, nowISO } from './utils.js';
 import { icon } from './components/icons.js';
@@ -64,11 +66,19 @@ async function startApp() {
     await store.init();
   } catch (err) {
     console.error('[app] Falha ao conectar ao Supabase', err);
+    const probe = isNetworkError(err) ? await probeBackend() : null;
+    const { titulo, detalhe, comoResolver } = describeBackendError(err, probe);
     const root = document.getElementById('view-root');
     clearNode(root);
-    root.appendChild(
-      el('div', { class: 'empty-state' }, [el('p', { text: 'Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet e recarregue a página.' })])
-    );
+    root.appendChild(el('div', { class: 'empty-state' }, [
+      el('p', {}, [el('strong', { text: titulo })]),
+      detalhe ? el('p', { class: 'form-alert__detail', text: detalhe }) : null,
+      comoResolver.length ? el('ul', { class: 'form-alert__steps', style: 'text-align:left;display:inline-block;' }, comoResolver.map((passo) => el('li', { text: passo }))) : null,
+      el('div', { class: 'u-flex u-gap-2', style: 'justify-content:center;margin-top:12px;' }, [
+        el('button', { class: 'btn btn--primary btn--sm', type: 'button', text: 'Tentar novamente', onClick: () => location.reload() }),
+        comoResolver.length ? el('a', { class: 'btn btn--secondary btn--sm', href: SUPABASE_DASHBOARD_URL, target: '_blank', rel: 'noopener', text: 'Painel do Supabase' }) : null,
+      ]),
+    ]));
     return;
   }
 

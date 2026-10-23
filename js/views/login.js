@@ -6,6 +6,8 @@
 // (Authentication → Users → Add user). Ver README.md.
 // ==========================================================================
 import { supabase } from '../supabaseClient.js';
+import { SUPABASE_DASHBOARD_URL } from '../supabase-config.js';
+import { probeBackend, isNetworkError, describeBackendError } from '../backend-errors.js';
 import { el, clearNode } from '../utils.js';
 import { field } from '../components/forms.js';
 import { showToast } from '../components/toast.js';
@@ -20,11 +22,25 @@ export function renderLogin(root, { onSuccess }) {
   const submitBtn = el('button', { class: 'btn btn--primary', type: 'submit', style: 'width:100%;margin-top:8px;' }, ['Entrar']);
   const forgotBtn = el('button', { class: 'login-screen__forgot', type: 'button' }, ['Esqueci minha senha']);
 
+  const alertHost = el('div');
+
   const form = el('form', { class: 'form-grid' }, [
     emailField.wrap,
     passwordField.wrap,
     submitBtn,
   ]);
+
+  /** Mostra o diagnóstico de forma persistente (não some sozinho como o toast). */
+  function showAlert({ titulo, detalhe, comoResolver }) {
+    clearNode(alertHost);
+    const corpo = [el('strong', { text: titulo })];
+    if (detalhe) corpo.push(el('p', { class: 'form-alert__detail', text: detalhe }));
+    if (comoResolver && comoResolver.length) {
+      corpo.push(el('ul', { class: 'form-alert__steps' }, comoResolver.map((passo) => el('li', { text: passo }))));
+      corpo.push(el('a', { class: 'form-alert__link', href: SUPABASE_DASHBOARD_URL, target: '_blank', rel: 'noopener', text: 'Abrir o painel do Supabase' }));
+    }
+    alertHost.appendChild(el('div', { class: 'form-alert', role: 'alert' }, corpo));
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -33,6 +49,7 @@ export function renderLogin(root, { onSuccess }) {
     if (!emailField.value.trim()) { emailField.setError('Informe o e-mail.'); return; }
     if (!passwordField.value) { passwordField.setError('Informe a senha.'); return; }
 
+    clearNode(alertHost);
     submitBtn.disabled = true;
     submitBtn.textContent = 'Entrando...';
     try {
@@ -40,7 +57,13 @@ export function renderLogin(root, { onSuccess }) {
       if (error) throw error;
       onSuccess();
     } catch (err) {
-      showToast(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : (err.message || 'Não foi possível entrar.'), { type: 'danger' });
+      console.error('[login] falha ao autenticar', err);
+      // Erro de rede não é culpa da senha: antes de qualquer mensagem,
+      // descobre se o backend sequer está no ar.
+      const probe = isNetworkError(err) ? await probeBackend() : null;
+      const diagnostico = describeBackendError(err, probe);
+      if (diagnostico.comoResolver.length) showAlert(diagnostico);
+      else showToast(diagnostico.titulo, { type: 'danger' });
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Entrar';
@@ -55,7 +78,11 @@ export function renderLogin(root, { onSuccess }) {
       if (error) throw error;
       showToast('Se o e-mail existir, enviamos um link de redefinição de senha.', { type: 'success' });
     } catch (err) {
-      showToast(err.message || 'Não foi possível enviar o e-mail de redefinição.', { type: 'danger' });
+      console.error('[login] falha ao pedir redefinição de senha', err);
+      const probe = isNetworkError(err) ? await probeBackend() : null;
+      const diagnostico = describeBackendError(err, probe);
+      if (diagnostico.comoResolver.length) showAlert(diagnostico);
+      else showToast(diagnostico.titulo, { type: 'danger' });
     }
   });
 
@@ -67,6 +94,7 @@ export function renderLogin(root, { onSuccess }) {
         el('div', { class: 'login-screen__subtitle', text: 'André Delamata' }),
       ]),
     ]),
+    alertHost,
     form,
     forgotBtn,
   ]);

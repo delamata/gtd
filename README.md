@@ -24,6 +24,22 @@ A camada `js/database.js` é uma fachada fina sobre um "adapter" trocável:
 em `js/app.js`). `js/store.js` — onde vive toda a regra de negócio — nunca
 sabe qual dos dois está ativo.
 
+## Quando o app não conecta
+
+Se o login falhar com uma mensagem sobre o servidor não responder, o app
+mostra um painel com o diagnóstico e o que fazer. A causa mais comum é o
+**projeto Supabase pausado**: no plano gratuito ele hiberna após alguns
+dias sem uso, e aí nenhuma requisição chega. Abra o
+[painel do projeto](https://supabase.com/dashboard/project/gpslignexvadturgpxjx)
+e clique em **Restore project** (leva 1-2 minutos).
+
+A lógica desse diagnóstico fica em
+[`js/backend-errors.js`](js/backend-errors.js), separada do
+`supabaseClient.js` porque este importa o SDK por CDN — o que impediria os
+testes de rodarem. `probeBackend()` sonda o endpoint público de health para
+distinguir três coisas que o navegador reporta igual ("Failed to fetch"):
+projeto fora do ar, navegador offline e credenciais incorretas.
+
 ## Arquivamento e status
 
 - **Arquivar tarefas e FUPs**: o botão de arquivar (ícone de caixa) na
@@ -60,11 +76,12 @@ sabe qual dos dois está ativo.
 2. **Sua conta**: no painel do Supabase, **Authentication → Users → Add
    user**, informe seu e-mail e uma senha. É essa conta que você vai usar
    para logar no app.
-3. **Credenciais do front-end**: `js/supabaseClient.js` já aponta para o
-   projeto Supabase configurado (Project URL + chave `anon`/pública — essa
-   chave é segura de ficar no código, quem protege os dados é o RLS do
-   passo 1). Se algum dia trocar de projeto Supabase, atualize os dois
-   valores nesse arquivo.
+3. **Credenciais do front-end**: [`js/supabase-config.js`](js/supabase-config.js)
+   já aponta para o projeto Supabase configurado (Project URL + chave
+   `anon`/pública — essa chave é segura de ficar no código, quem protege os
+   dados é o RLS do passo 1). Se algum dia trocar de projeto Supabase,
+   atualize os dois valores nesse arquivo — é o único lugar onde eles
+   aparecem.
 
 ## Rodando localmente (desenvolvimento)
 

@@ -312,3 +312,23 @@
 .bulk-bar__count { font-weight: var(--font-weight-semibold); color: var(--color-navy); }
 .divider { height: 1px; background: var(--color-border); margin: var(--space-4) 0; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* ---------------------------------------------------------------------
+   form-alert — diagnóstico persistente de erro (login, falha de conexão).
+   Diferente do toast, não some sozinho: quem precisa ler os passos de
+   resolução não tem cinco segundos para isso.
+   --------------------------------------------------------------------- */
+.form-alert {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.form-alert__detail { margin: 6px 0 0; opacity: 0.85; font-size: var(--font-size-xs); word-break: break-word; }
+.form-alert__steps { margin: 8px 0 0; padding-left: 18px; }
+.form-alert__steps li { margin-bottom: 4px; }
+.form-alert__link { display: inline-block; margin-top: 8px; color: inherit; font-weight: var(--font-weight-semibold); }
