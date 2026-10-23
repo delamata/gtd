@@ -137,6 +137,33 @@ function firstLine(texto) {
   return linha.slice(0, 200);
 }
 
+/**
+ * Cria uma Demanda — pedido que chega de fora, pela página pública
+ * (demanda.html), sem login. Nasce com status 'nova' e espera triagem:
+ * virar tarefa, ser recusada ou arquivada. Nunca vira tarefa sozinha — a
+ * decisão é de quem recebe.
+ */
+export function makeDemand(id, data = {}) {
+  const ts = nowISO();
+  return {
+    id,
+    solicitante: sanitizeText(data.solicitante, { maxLength: 120 }),
+    email: sanitizeText(data.email, { maxLength: 160 }),
+    area: sanitizeText(data.area, { maxLength: 120 }),
+    titulo: sanitizeText(data.titulo, { maxLength: 200 }),
+    descricao: sanitizeText(data.descricao, { maxLength: 4000 }),
+    prioridadeSugerida: data.prioridadeSugerida || 'media',
+    prazoDesejado: data.prazoDesejado || '',
+    status: data.status || 'nova',
+    tarefasIds: Array.isArray(data.tarefasIds) ? data.tarefasIds : [],
+    respostaInterna: sanitizeText(data.respostaInterna, { maxLength: 2000 }),
+    criadoEm: data.criadoEm || ts,
+    atualizadoEm: ts,
+    arquivada: !!data.arquivada,
+    deletedFlag: !!data.deletedFlag,
+  };
+}
+
 /** Cria uma entrada permanente do histórico de conclusões. */
 export function makeHistoryEntry(id, data = {}) {
   return {

@@ -8,9 +8,9 @@ import * as db from './database.js';
 import { nowISO, todayISO, isWithinNextDays, isOverdue, downloadTextFile, getPreferences } from './utils.js';
 
 export async function exportAllData() {
-  const [tasks, fups, agenda, collaborators, notes, history, auditLog, meta] = await Promise.all([
+  const [tasks, fups, agenda, collaborators, notes, demands, history, auditLog, meta] = await Promise.all([
     db.getAll('tasks'), db.getAll('fups'), db.getAll('agenda'), db.getAll('collaborators'),
-    db.getAll('notes'), db.getAll('history'), db.getAll('auditLog'), db.getMeta(),
+    db.getAll('notes'), db.getAll('demands'), db.getAll('history'), db.getAll('auditLog'), db.getMeta(),
   ]);
   return {
     versaoEsquema: db.SCHEMA_VERSION,
@@ -21,6 +21,7 @@ export async function exportAllData() {
     fups,
     agenda,
     anotacoes: notes,
+    demandas: demands,
     historico: history,
     logs: auditLog,
     meta: meta || null,
@@ -70,6 +71,9 @@ export function validateBackupShape(json) {
     if (json.anotacoes !== undefined && !Array.isArray(json.anotacoes)) {
       errors.push('Campo "anotacoes" não é uma lista.');
     }
+    if (json.demandas !== undefined && !Array.isArray(json.demandas)) {
+      errors.push('Campo "demandas" não é uma lista.');
+    }
   }
   const valid = errors.length === 0;
   const summary = valid
@@ -79,6 +83,7 @@ export function validateBackupShape(json) {
         fups: json.fups.length,
         agenda: json.agenda.length,
         anotacoes: Array.isArray(json.anotacoes) ? json.anotacoes.length : 0,
+        demandas: Array.isArray(json.demandas) ? json.demandas.length : 0,
         historico: json.historico.length,
         logs: Array.isArray(json.logs) ? json.logs.length : 0,
         exportadoEm: json.exportadoEm,
@@ -105,6 +110,7 @@ function recomputeCounters(data, previousCounters = {}) {
   scan(data.historico, 'C');
   scan(data.colaboradores, 'P');
   scan(data.anotacoes || [], 'N');
+  scan(data.demandas || [], 'D');
   return counters;
 }
 
@@ -138,6 +144,7 @@ export async function importBackupData(json, { mode = 'replace', autoBackup = tr
     await db.putMany('fups', json.fups);
     await db.putMany('agenda', json.agenda);
     if (Array.isArray(json.anotacoes)) await db.putMany('notes', json.anotacoes);
+    if (Array.isArray(json.demandas)) await db.putMany('demands', json.demandas);
     await db.putMany('history', json.historico);
     if (Array.isArray(json.logs)) await db.putMany('auditLog', json.logs);
     const counters = recomputeCounters(json, {});
@@ -149,6 +156,7 @@ export async function importBackupData(json, { mode = 'replace', autoBackup = tr
     await db.putMany('fups', json.fups);
     await db.putMany('agenda', json.agenda);
     if (Array.isArray(json.anotacoes)) await db.putMany('notes', json.anotacoes);
+    if (Array.isArray(json.demandas)) await db.putMany('demands', json.demandas);
     await db.putMany('history', json.historico);
     if (Array.isArray(json.logs)) await db.putMany('auditLog', json.logs);
     const counters = recomputeCounters(json, currentMeta.counters || {});

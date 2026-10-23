@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar demanda — GTD Executivo</title>
+<meta name="description" content="Formulário para registrar uma demanda para André Delamata.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="assets/icons/app-icon.svg">
+<meta name="theme-color" content="#122B40">
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+<!--
+  Página PÚBLICA: não exige login e não lê nenhum dado. A única coisa que
+  ela faz é chamar a função submit_demand() do Postgres, que valida e grava
+  a demanda. O papel "anon" não tem permissão sobre nenhuma tabela — ver o
+  comentário em supabase/schema.sql.
+-->
+<main class="public-page" id="demand-root"></main>
+<noscript>Este formulário requer JavaScript habilitado.</noscript>
+<script type="module" src="js/public-demand.js"></script>
+</body>
+</html>

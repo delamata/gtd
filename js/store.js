@@ -5,8 +5,8 @@
 // ==========================================================================
 import * as db from './database.js';
 import { recordAudit, listAuditLog } from './audit.js';
-import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeNote, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
-import { validateTask, validateFup, validateAgenda, validateCollaborator, validateNote, sanitizeText } from './validators.js';
+import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeNote, makeDemand, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
+import { validateTask, validateFup, validateAgenda, validateCollaborator, validateNote, validateDemand, sanitizeText } from './validators.js';
 import {
   nowISO, todayISO, addDaysISO, addMonthsISO, diffDaysISO, isOverdue, isOpenStatus,
   isToday, isTomorrow, isThisWeek, isWithinNextDays, sortBy, PRIORIDADE_ORDEM,
@@ -748,6 +748,139 @@ export async function getNoteTasks(noteId) {
 }
 
 // =======================================================================
+// DEMANDAS (pedidos recebidos pela página pública, sem login)
+//
+// Chegam de fora pela função submit_demand() do Postgres — ver
+// supabase/schema.sql. Daqui o app só TRIA: aceita (virando tarefa),
+// recusa ou arquiva. createDemand() existe para o dono registrar um pedido
+// que chegou por outro canal (e para os testes); o caminho público não
+// passa por aqui, porque não há sessão.
+// =======================================================================
+export async function listDemands(filters = {}) {
+  const all = await db.getAll('demands');
+  const visible = all.filter((d) => !d.deletedFlag && matchesArchiveFilter(d, filters));
+  const filtered = visible.filter((d) => {
+    if (filters.status) {
+      const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+      if (!statuses.includes(d.status)) return false;
+    }
+    if (filters.area && d.area !== filters.area) return false;
+    if (filters.prioridadeSugerida && d.prioridadeSugerida !== filters.prioridadeSugerida) return false;
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      const haystack = [d.id, d.titulo, d.descricao, d.solicitante, d.email, d.area]
+        .filter(Boolean).join(' | ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+  return sortBy(filtered, (d) => d.criadoEm, 'desc');
+}
+
+export async function getDemand(id) {
+  return db.getOne('demands', id);
+}
+
+export async function createDemand(data) {
+  const validation = validateDemand(data);
+  if (!validation.valid) throw new ValidationError(validation.errors);
+  const id = await db.getNextId('D');
+  const record = makeDemand(id, data);
+  await db.putOne('demands', record);
+  await recordAudit({ tipoAcao: 'criacao', tipoRegistro: 'demand', idRegistro: id, valorNovo: record });
+  emit({ type: 'demand:create', record });
+  return record;
+}
+
+export async function updateDemand(id, patch) {
+  const current = await db.getOne('demands', id);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const merged = makeDemand(id, { ...current, ...patch, criadoEm: current.criadoEm, tarefasIds: current.tarefasIds });
+  const validation = validateDemand(merged);
+  if (!validation.valid) throw new ValidationError(validation.errors);
+  await db.putOne('demands', merged);
+  await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'demand', idRegistro: id, valorAnterior: current, valorNovo: merged });
+  emit({ type: 'demand:update', record: merged });
+  return merged;
+}
+
+/**
+ * Registra que uma tarefa nasceu desta demanda e a marca como aceita. Como
+ * nas anotações, a tarefa é criada pelo formulário comum — aqui só se guarda
+ * o vínculo, para o solicitante poder ser respondido depois.
+ */
+export async function linkDemandToTask(demandId, taskId) {
+  const current = await db.getOne('demands', demandId);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const task = await db.getOne('tasks', taskId);
+  if (!task) throw new Error('Tarefa não encontrada.');
+  if (current.tarefasIds.includes(taskId)) return current;
+  const updated = {
+    ...current,
+    tarefasIds: [...current.tarefasIds, taskId],
+    status: 'aceita',
+    atualizadoEm: nowISO(),
+  };
+  await db.putOne('demands', updated);
+  await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'demand', idRegistro: demandId, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'demand:update', record: updated });
+  return updated;
+}
+
+export async function rejectDemand(id, motivo = '') {
+  const current = await db.getOne('demands', id);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const updated = {
+    ...current,
+    status: 'recusada',
+    respostaInterna: sanitizeText(motivo, { maxLength: 2000 }) || current.respostaInterna,
+    atualizadoEm: nowISO(),
+  };
+  await db.putOne('demands', updated);
+  await recordAudit({ tipoAcao: 'cancelamento', tipoRegistro: 'demand', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'demand:update', record: updated });
+  return updated;
+}
+
+export async function archiveDemand(id) {
+  const current = await db.getOne('demands', id);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const updated = { ...current, arquivada: true, atualizadoEm: nowISO() };
+  await db.putOne('demands', updated);
+  await recordAudit({ tipoAcao: 'arquivamento', tipoRegistro: 'demand', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'demand:archive', record: updated });
+  return updated;
+}
+
+export async function unarchiveDemand(id) {
+  const current = await db.getOne('demands', id);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const updated = { ...current, arquivada: false, atualizadoEm: nowISO() };
+  await db.putOne('demands', updated);
+  await recordAudit({ tipoAcao: 'desarquivamento', tipoRegistro: 'demand', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'demand:unarchive', record: updated });
+  return updated;
+}
+
+/** Exclusão lógica — para spam que passe pela página pública. */
+export async function deleteDemand(id) {
+  const current = await db.getOne('demands', id);
+  if (!current) throw new Error('Demanda não encontrada.');
+  const updated = { ...current, deletedFlag: true, atualizadoEm: nowISO() };
+  await db.putOne('demands', updated);
+  await recordAudit({ tipoAcao: 'exclusao', tipoRegistro: 'demand', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'demand:delete', record: updated });
+  return updated;
+}
+
+export async function getDemandTasks(demandId) {
+  const demand = await db.getOne('demands', demandId);
+  if (!demand) return [];
+  const tasks = await Promise.all(demand.tarefasIds.map((id) => db.getOne('tasks', id)));
+  return tasks.filter((t) => t && !t.deletedFlag);
+}
+
+// =======================================================================
 // HISTÓRICO (conclusões)
 // =======================================================================
 export async function listHistory(filters = {}) {
@@ -897,6 +1030,7 @@ export async function getDashboardStats() {
     atrasados: overdue.length,
     urgentes: [...openTasks, ...openFups].filter(isUrgente).length,
     anotacoesPendentes: (await listNotes({ pendentes: true })).length,
+    demandasNovas: (await listDemands({ status: 'nova' })).length,
     altaPrioridade: openTasks.filter((t) => t.prioridade === 'alta').length + openFups.filter((f) => f.prioridade === 'alta').length,
     aguardandoRetorno: openFups.filter((f) => f.status === 'aguardando_retorno').length + openTasks.filter((t) => t.status === 'aguardando_retorno').length,
     agendaHoje: annotateConflicts(agenda.filter((a) => isToday(a.data))),

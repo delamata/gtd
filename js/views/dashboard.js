@@ -57,6 +57,7 @@ function renderCards(container, stats) {
     { label: 'Atrasados', value: stats.atrasados, tone: 'danger', route: '#/hoje' },
     { label: 'Urgentes', value: stats.urgentes, tone: 'danger', route: '#/tarefas' },
     { label: 'Anotações a processar', value: stats.anotacoesPendentes, tone: 'accent', route: '#/anotacoes' },
+    { label: 'Demandas novas', value: stats.demandasNovas, tone: 'warning', route: '#/demandas' },
     { label: 'Alta prioridade', value: stats.altaPrioridade, tone: 'warning', route: '#/tarefas' },
     { label: 'Aguardando retorno', value: stats.aguardandoRetorno, tone: 'warning', route: '#/fups' },
     { label: 'Agenda de hoje', value: stats.agendaHoje.length, tone: '', route: '#/agenda' },

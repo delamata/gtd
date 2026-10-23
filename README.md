@@ -52,6 +52,46 @@ O Dashboard mostra quantas anotações faltam processar, e a busca global
 > tabela `notes`. Sem ela o app não carrega, porque o Dashboard também
 > consulta as anotações. É idempotente, pode rodar quantas vezes quiser.
 
+## Demandas: formulário público para a equipe
+
+A página [`demanda.html`](demanda.html) fica na raiz do site e **não pede
+login**: qualquer pessoa com o link preenche e envia. As demandas chegam na
+tela **Demandas** do app, onde você tria — aceita (virando tarefa, com o
+vínculo guardado), recusa com um motivo registrado, ou arquiva.
+
+O link é `https://SEU-APP.vercel.app/demanda.html`. O botão **"Copiar link"**
+no topo da tela de Demandas já monta a URL certa.
+
+### Como isso é seguro sem login
+
+O ponto delicado é que a `anon key` do Supabase é pública (está no código do
+navegador, por design). Então o acesso sem login foi desenhado assim:
+
+- **O papel `anon` não tem permissão nenhuma sobre nenhuma tabela.** Não há
+  política de RLS que o mencione. Ele não lê tarefas, FUPs, anotações, nada.
+- O único acesso é a função `submit_demand()`, que é **`SECURITY DEFINER`**:
+  roda com os privilégios do dono e grava a demanda em nome da sua conta, sem
+  precisar expor a tabela. Ela devolve só o número de protocolo.
+- A função **revalida tudo no servidor** — obrigatórios, tamanhos, formato de
+  e-mail e de data. A validação do formulário é conveniência para quem
+  preenche: quem manda uma requisição direta pula o JavaScript inteiro.
+- **Controle de vazão**: no máximo 5 envios por minuto e 60 por hora, para
+  uma pessoa (ou um script) não entupir a caixa de entrada.
+- **Honeypot**: um campo escondido que só robô preenche. Quando vem
+  preenchido, a função devolve um protocolo falso e não grava nada — dar erro
+  só ensinaria o robô a tentar de outro jeito.
+
+O que **continua sendo risco**: o link é público, então spam é possível
+dentro dos limites acima. Por isso a tela de triagem tem "Excluir (spam)". Se
+virar problema de verdade, os caminhos são exigir um código combinado com a
+equipe ou pôr um captcha (o que precisaria de uma Edge Function). Hoje não
+tem nenhum dos dois.
+
+> **Ao atualizar para esta versão, rode de novo o
+> [`supabase/schema.sql`](supabase/schema.sql)** — ele cria a tabela
+> `demands` e a função `submit_demand()`. Sem isso o app não carrega e o
+> formulário não envia.
+
 ## Quando o app não conecta
 
 Se o login falhar com uma mensagem sobre o servidor não responder, o app

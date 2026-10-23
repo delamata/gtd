@@ -400,3 +400,86 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* ---------------------------------------------------------------------
+   Página pública de demandas (demanda.html) e triagem (#/demandas)
+   --------------------------------------------------------------------- */
+.public-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-navy);
+}
+.public-page__card { width: 100%; max-width: 560px; }
+.public-page__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.public-page__mark { flex-shrink: 0; }
+.public-page__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-navy);
+  line-height: 1.2;
+}
+.public-page__subtitle { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.public-page__success { text-align: center; padding: var(--space-3) 0; }
+.public-page__protocol {
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-navy);
+  letter-spacing: 1px;
+  margin-bottom: var(--space-2);
+}
+.public-page__note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+/* Honeypot: fora da tela, mas ainda focável por leitor de tela — por isso o
+   rótulo diz para não preencher. `display:none` seria ignorado por parte
+   dos robôs, que leem o HTML e não o CSS. */
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.demand-card { margin-bottom: var(--space-3); }
+.demand-card.is-archived { opacity: 0.68; }
+.demand-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.demand-card__title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-navy);
+  line-height: 1.35;
+}
+.demand-card__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+}
+.demand-card__text { white-space: pre-wrap; line-height: 1.5; margin: var(--space-2) 0; }
+.demand-card__answer {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--font-size-sm);
+  margin: var(--space-2) 0;
+}

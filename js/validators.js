@@ -104,6 +104,25 @@ export function validateNote(data) {
   return r;
 }
 
+const DEMAND_STATUS = new Set(['nova', 'em_triagem', 'aceita', 'recusada']);
+
+/**
+ * Valida uma demanda. As MESMAS regras estão em submit_demand()
+ * (supabase/schema.sql), porque a página pública não pode depender só da
+ * validação do navegador — quem manda uma requisição direta pula o
+ * JavaScript inteiro.
+ */
+export function validateDemand(data) {
+  const r = baseResult();
+  if (!sanitizeText(data.titulo, { maxLength: 200 })) fail(r, 'titulo', 'Informe o título da demanda.');
+  if (!sanitizeText(data.descricao, { maxLength: 4000 })) fail(r, 'descricao', 'Descreva a demanda.');
+  if (data.email && !isValidEmail(data.email)) fail(r, 'email', 'E-mail inválido.');
+  if (data.prazoDesejado && !isValidISODate(data.prazoDesejado)) fail(r, 'prazoDesejado', 'Data inválida.');
+  if (data.prioridadeSugerida && !PRIORIDADES.has(data.prioridadeSugerida)) fail(r, 'prioridadeSugerida', 'Prioridade inválida.');
+  if (data.status && !DEMAND_STATUS.has(data.status)) fail(r, 'status', 'Status inválido.');
+  return r;
+}
+
 export function validateCollaborator(data) {
   const r = baseResult();
   if (!sanitizeText(data.nome, { maxLength: 120 })) fail(r, 'nome', 'Informe o nome.');

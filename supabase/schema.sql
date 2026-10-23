@@ -111,6 +111,34 @@ create table if not exists public.notes (
   "deletedFlag" boolean not null default false
 );
 
+-- Demandas recebidas pela página pública (demanda.html). Repare que NÃO há
+-- política para o papel "anon" nesta tabela: quem está sem login não enxerga
+-- nem grava nada aqui diretamente — só pode chamar a função
+-- submit_demand() mais abaixo, que valida e grava em nome do dono.
+create table if not exists public.demands (
+  id text primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  solicitante text not null default '',
+  email text not null default '',
+  area text not null default '',
+  titulo text not null default '',
+  descricao text not null default '',
+  "prioridadeSugerida" text not null default 'media',
+  "prazoDesejado" text not null default '',
+  status text not null default 'nova',
+  "tarefasIds" text[] not null default '{}',
+  "respostaInterna" text not null default '',
+  "criadoEm" text not null default '',
+  "atualizadoEm" text not null default '',
+  -- timestamp real, só para o controle de vazão da função pública; o app
+  -- continua lendo "criadoEm" como as demais entidades.
+  submitted_at timestamptz not null default now(),
+  arquivada boolean not null default false,
+  "deletedFlag" boolean not null default false
+);
+
+create index if not exists demands_submitted_at_idx on public.demands (submitted_at);
+
 create table if not exists public.history (
   id text primary key,
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -188,13 +216,108 @@ $$;
 grant execute on function public.next_id(text) to authenticated;
 
 -- ---------------------------------------------------------------------
+-- submit_demand() — o único caminho pelo qual alguém SEM LOGIN escreve
+-- neste banco. É SECURITY DEFINER: roda com os privilégios do dono da
+-- função, não do chamador, então o papel "anon" não precisa (e não recebe)
+-- nenhuma permissão sobre a tabela demands. Quem chama só consegue:
+--   * inserir uma demanda, nunca ler, alterar ou apagar nada;
+--   * dentro dos limites de tamanho e de vazão verificados aqui.
+-- Devolve só o número de protocolo.
+-- ---------------------------------------------------------------------
+create or replace function public.submit_demand(
+  p_titulo text,
+  p_descricao text,
+  p_solicitante text default '',
+  p_email text default '',
+  p_area text default '',
+  p_prioridade text default 'media',
+  p_prazo text default '',
+  p_trap text default ''        -- honeypot: campo escondido no formulário
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid;
+  v_id text;
+  v_last_minute integer;
+  v_last_hour integer;
+begin
+  -- Bot que preenche o campo escondido recebe um protocolo falso e nada é
+  -- gravado: devolver erro só ensinaria o robô a tentar de outro jeito.
+  if coalesce(trim(p_trap), '') <> '' then
+    return 'D000';
+  end if;
+
+  if coalesce(trim(p_titulo), '') = '' then
+    raise exception 'Informe o título da demanda.';
+  end if;
+  if coalesce(trim(p_descricao), '') = '' then
+    raise exception 'Descreva a demanda.';
+  end if;
+  if length(p_titulo) > 200 or length(p_descricao) > 4000
+     or length(coalesce(p_solicitante, '')) > 120 or length(coalesce(p_email, '')) > 160
+     or length(coalesce(p_area, '')) > 120 then
+    raise exception 'Conteúdo acima do tamanho permitido.';
+  end if;
+  if coalesce(p_email, '') <> '' and p_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' then
+    raise exception 'E-mail inválido.';
+  end if;
+  if coalesce(p_prazo, '') <> '' and p_prazo !~ '^\d{4}-\d{2}-\d{2}$' then
+    raise exception 'Data inválida.';
+  end if;
+
+  -- Controle de vazão: a página é pública, então sem isso uma única pessoa
+  -- (ou um script) entope a caixa de entrada.
+  select count(*) into v_last_minute from public.demands where submitted_at > now() - interval '1 minute';
+  select count(*) into v_last_hour   from public.demands where submitted_at > now() - interval '1 hour';
+  if v_last_minute >= 5 or v_last_hour >= 60 then
+    raise exception 'Muitas demandas enviadas agora há pouco. Tente de novo em alguns minutos.';
+  end if;
+
+  -- Dono da caixa de entrada. Este app é de uso pessoal: há uma conta só, e
+  -- é ela que recebe. Virando multiusuário, troque por uma configuração
+  -- explícita de para quem vai cada demanda.
+  select id into v_owner from auth.users order by created_at asc limit 1;
+  if v_owner is null then
+    raise exception 'Nenhuma conta configurada para receber demandas.';
+  end if;
+
+  insert into public.id_counters (user_id, prefix, value)
+  values (v_owner, 'D', 1)
+  on conflict (user_id, prefix) do update set value = public.id_counters.value + 1
+  returning 'D' || lpad(value::text, 3, '0') into v_id;
+
+  insert into public.demands (
+    id, user_id, solicitante, email, area, titulo, descricao,
+    "prioridadeSugerida", "prazoDesejado", status, "criadoEm", "atualizadoEm"
+  ) values (
+    v_id, v_owner,
+    trim(coalesce(p_solicitante, '')), trim(coalesce(p_email, '')), trim(coalesce(p_area, '')),
+    trim(p_titulo), trim(p_descricao),
+    case when p_prioridade in ('urgente','alta','media','baixa') then p_prioridade else 'media' end,
+    coalesce(p_prazo, ''), 'nova',
+    to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  );
+
+  return v_id;
+end;
+$$;
+
+-- É este grant — e só ele — que a página pública usa.
+grant execute on function public.submit_demand(text, text, text, text, text, text, text, text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
 -- Row Level Security — cada usuário só vê/edita as próprias linhas
 -- ---------------------------------------------------------------------
 do $$
 declare
   t text;
 begin
-  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','history','auditLog','meta','id_counters'])
+  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','demands','history','auditLog','meta','id_counters'])
   loop
     execute format('alter table public.%I enable row level security;', t);
 
@@ -220,7 +343,7 @@ do $$
 declare
   t text;
 begin
-  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','history'])
+  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','demands','history'])
   loop
     if not exists (
       select 1 from pg_publication_tables
