@@ -163,3 +163,79 @@ export function icon(name, { size = 18, className = '', strokeWidth = 2 } = {}) 
 export function iconButton(name, label, onClick) {
   return el('button', { class: 'btn btn--icon btn--sm btn--ghost', type: 'button', 'aria-label': label, title: label, onClick }, [icon(name, { size: 15 })]);
 }
+
+// ---------------------------------------------------------------------
+// Marca GT
+//
+// Monograma desenhado como GEOMETRIA (círculo + retângulos), não como
+// texto: o ícone antigo usava <text font-family="Arial">, que renderiza
+// diferente em cada sistema operacional e some se a fonte não existir.
+//
+// O G é um anel com a contraforma e a abertura recortadas por <mask> —
+// assim a marca fica correta sobre qualquer fundo, inclusive transparente,
+// em vez de depender de pintar o fundo por cima. A abertura tem corte
+// vertical (e não radial) e é generosa de propósito: a 16px, um vão
+// estreito fecha na antialiasing e o G vira um "O".
+//
+// Os mesmos números estão em assets/icons/*.svg (favicon, ícone do app e
+// PNGs de home screen), gerados juntos — ver assets/icons/README.md.
+// ---------------------------------------------------------------------
+const LOGO = {
+  cx: 9.7, cy: 16, rOut: 6.38, rIn: 3.48,   // anel do G (peso 2.90)
+  cutX: 12.1,                                // corte vertical da abertura
+  tongue: [9.7, 14.55, 6.08, 2.9],           // x, y, largura, altura
+  tBar: [17.3, 9.8, 11, 2.9],
+  tStem: [21.35, 9.8, 2.9, 12.4],
+};
+
+let logoMaskSeq = 0;
+
+/**
+ * Monograma "GT" na cor herdada do CSS (currentColor), sem contêiner —
+ * quem desenha o quadrado arredondado é a classe que o envolve
+ * (.sidebar__brand-mark, .login-screen__brand-mark).
+ */
+export function logoMark({ size = 32, title = 'GT' } = {}) {
+  const maskId = `gt-counter-${++logoMaskSeq}`; // único por instância: a mesma marca pode aparecer duas vezes na página
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 32 32');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', title);
+  svg.style.display = 'block';
+
+  const rect = (parent, [x, y, w, h], fill) => {
+    const r = document.createElementNS(SVG_NS, 'rect');
+    r.setAttribute('x', x); r.setAttribute('y', y);
+    r.setAttribute('width', w); r.setAttribute('height', h);
+    if (fill) r.setAttribute('fill', fill);
+    parent.appendChild(r);
+    return r;
+  };
+  const circle = (parent, cx, cy, r, fill) => {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+    if (fill) c.setAttribute('fill', fill);
+    parent.appendChild(c);
+    return c;
+  };
+
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const mask = document.createElementNS(SVG_NS, 'mask');
+  mask.setAttribute('id', maskId);
+  rect(mask, [0, 0, 32, 32], '#fff');                              // mantém tudo
+  circle(mask, LOGO.cx, LOGO.cy, LOGO.rIn, '#000');                // recorta a contraforma
+  rect(mask, [LOGO.cutX, 0, 32 - LOGO.cutX, LOGO.tongue[1]], '#000'); // recorta a abertura
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('fill', 'currentColor');
+  circle(g, LOGO.cx, LOGO.cy, LOGO.rOut).setAttribute('mask', `url(#${maskId})`);
+  rect(g, LOGO.tongue);
+  rect(g, LOGO.tBar);
+  rect(g, LOGO.tStem);
+  svg.appendChild(g);
+  return svg;
+}

@@ -10,7 +10,7 @@ import { SUPABASE_DASHBOARD_URL } from './supabase-config.js';
 import { probeBackend, isNetworkError, describeBackendError } from './backend-errors.js';
 import { renderLogin } from './views/login.js';
 import { el, clearNode, formatDateLong, todayISO, getPreferences, savePreferences, downloadTextFile, nowISO } from './utils.js';
-import { icon } from './components/icons.js';
+import { icon, logoMark } from './components/icons.js';
 import { showToast } from './components/toast.js';
 
 import * as dashboardView from './views/dashboard.js';
@@ -100,6 +100,9 @@ async function startApp() {
 }
 
 function buildSidebar() {
+  const brandMark = document.getElementById('sidebar-brand-mark');
+  if (brandMark && !brandMark.firstChild) brandMark.appendChild(logoMark({ size: 24, title: 'GTD Executivo' }));
+
   const nav = document.getElementById('sidebar-nav');
   clearNode(nav);
   for (const item of NAV_ITEMS) {

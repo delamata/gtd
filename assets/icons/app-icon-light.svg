@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GTD Executivo">
+  <rect width="32" height="32" rx="7" fill="#FFD400"/>
+  <defs>
+    <mask id="gt-counter">
+      <rect x="0" y="0" width="32" height="32" fill="#fff"/>
+      <circle cx="9.7" cy="16.0" r="3.48" fill="#000"/>
+      <rect x="12.1" y="0" width="19.9" height="14.55" fill="#000"/>
+    </mask>
+  </defs>
+  <g fill="#122B40">
+    <circle cx="9.7" cy="16.0" r="6.38" mask="url(#gt-counter)"/>
+    <rect x="9.7" y="14.55" width="6.08" height="2.9"/>
+    <rect x="17.3" y="9.8" width="11.0" height="2.9"/>
+    <rect x="21.35" y="9.8" width="2.9" height="12.4"/>
+  </g>
+</svg>

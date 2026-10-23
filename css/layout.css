@@ -34,16 +34,18 @@
   border-bottom: 1px solid rgba(255,255,255,0.12);
   min-height: var(--topbar-height);
 }
+/* O contêiner é o quadrado arredondado da marca; o monograma vem de
+   logoMark() e herda a cor por currentColor. O raio acompanha a proporção
+   do ícone do app (7/32 do lado) para favicon e marca na tela baterem. */
 .sidebar__brand-mark {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   background: var(--color-yellow);
   color: var(--color-navy);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: var(--font-weight-bold);
   flex-shrink: 0;
 }
 .sidebar__brand-text { line-height: 1.2; overflow: hidden; white-space: nowrap; }
@@ -183,13 +185,13 @@
 .login-screen__brand-mark {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md);
+  border-radius: 9px;
   background: var(--color-navy);
   color: var(--color-yellow);
-  font-weight: var(--font-weight-bold);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .login-screen__title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: var(--color-navy); }
 .login-screen__subtitle { font-size: var(--font-size-sm); color: var(--color-text-muted); }

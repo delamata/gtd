@@ -10,6 +10,7 @@ import { SUPABASE_DASHBOARD_URL } from '../supabase-config.js';
 import { probeBackend, isNetworkError, describeBackendError } from '../backend-errors.js';
 import { el, clearNode } from '../utils.js';
 import { field } from '../components/forms.js';
+import { logoMark } from '../components/icons.js';
 import { showToast } from '../components/toast.js';
 
 /** Renderiza a tela de login em `root`. Chama `onSuccess()` após autenticar. */
@@ -88,7 +89,7 @@ export function renderLogin(root, { onSuccess }) {
 
   const card = el('div', { class: 'card login-screen__card' }, [
     el('div', { class: 'login-screen__brand' }, [
-      el('div', { class: 'login-screen__brand-mark', 'aria-hidden': 'true', text: 'GT' }),
+      el('div', { class: 'login-screen__brand-mark' }, [logoMark({ size: 28, title: 'GTD Executivo' })]),
       el('div', {}, [
         el('div', { class: 'login-screen__title', text: 'GTD Executivo' }),
         el('div', { class: 'login-screen__subtitle', text: 'André Delamata' }),
