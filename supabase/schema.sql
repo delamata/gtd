@@ -93,6 +93,24 @@ create table if not exists public.collaborators (
   "deletedFlag" boolean not null default false
 );
 
+create table if not exists public.notes (
+  id text primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  titulo text not null default '',
+  texto text not null default '',
+  data text not null default '',
+  "colaboradorId" text not null default '',
+  area text not null default '',
+  participantes text not null default '',
+  tags text[] not null default '{}',
+  "tarefasIds" text[] not null default '{}',
+  "processadoEm" text not null default '',
+  "criadoEm" text not null default '',
+  "atualizadoEm" text not null default '',
+  arquivada boolean not null default false,
+  "deletedFlag" boolean not null default false
+);
+
 create table if not exists public.history (
   id text primary key,
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -176,7 +194,7 @@ do $$
 declare
   t text;
 begin
-  for t in select unnest(array['tasks','fups','agenda','collaborators','history','auditLog','meta','id_counters'])
+  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','history','auditLog','meta','id_counters'])
   loop
     execute format('alter table public.%I enable row level security;', t);
 
@@ -202,7 +220,7 @@ do $$
 declare
   t text;
 begin
-  for t in select unnest(array['tasks','fups','agenda','collaborators','history'])
+  for t in select unnest(array['tasks','fups','agenda','collaborators','notes','history'])
   loop
     if not exists (
       select 1 from pg_publication_tables

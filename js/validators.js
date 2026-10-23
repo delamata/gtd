@@ -95,6 +95,15 @@ export function validateAgenda(data) {
   return r;
 }
 
+export function validateNote(data) {
+  const r = baseResult();
+  // Exige só o texto: a captura precisa ser de um campo só, senão vira
+  // formulário e ninguém anota no meio da reunião.
+  if (!sanitizeText(data.texto, { maxLength: 10000 })) fail(r, 'texto', 'Escreva a anotação.');
+  if (data.data && !isValidISODate(data.data)) fail(r, 'data', 'Data inválida.');
+  return r;
+}
+
 export function validateCollaborator(data) {
   const r = baseResult();
   if (!sanitizeText(data.nome, { maxLength: 120 })) fail(r, 'nome', 'Informe o nome.');

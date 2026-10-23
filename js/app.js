@@ -19,6 +19,7 @@ import * as tasksView from './views/tasks.js';
 import * as fupsView from './views/fups.js';
 import * as agendaView from './views/agenda.js';
 import * as collaboratorsView from './views/collaborators.js';
+import * as notesView from './views/notes.js';
 import * as completedView from './views/completed.js';
 import * as emailView from './views/email.js';
 import * as settingsView from './views/settings.js';
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { route: '#/tarefas', label: 'Tarefas', icon: 'tasks' },
   { route: '#/fups', label: 'FUPs', icon: 'fups' },
   { route: '#/agenda', label: 'Agenda', icon: 'agenda' },
+  { route: '#/anotacoes', label: 'Anotações', icon: 'inbox' },
   { route: '#/colaboradores', label: 'Colaboradores', icon: 'collaborators' },
   { route: '#/concluidas', label: 'Concluídas', icon: 'completed' },
   { route: '#/email', label: 'E-mail executivo', icon: 'email' },
@@ -206,6 +208,7 @@ function registerRoutes() {
   router.registerRoute('#/tarefas', tasksView.render);
   router.registerRoute('#/fups', fupsView.render);
   router.registerRoute('#/agenda', agendaView.render);
+  router.registerRoute('#/anotacoes', notesView.render);
   router.registerRoute('#/colaboradores', collaboratorsView.render);
   router.registerRoute('#/concluidas', completedView.render);
   router.registerRoute('#/email', emailView.render);

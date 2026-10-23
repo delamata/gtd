@@ -332,3 +332,71 @@
 .form-alert__steps { margin: 8px 0 0; padding-left: 18px; }
 .form-alert__steps li { margin-bottom: 4px; }
 .form-alert__link { display: inline-block; margin-top: 8px; color: inherit; font-weight: var(--font-weight-semibold); }
+
+/* ---------------------------------------------------------------------
+   Anotações — captura rápida e lista da caixa de entrada
+   --------------------------------------------------------------------- */
+.note-capture { margin-bottom: var(--space-4); }
+.note-capture textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}
+.note-capture__details { margin-top: var(--space-3); }
+.note-capture__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.note-card { margin-bottom: var(--space-3); }
+.note-card.is-archived { opacity: 0.68; }
+.note-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.note-card__title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-navy);
+  line-height: 1.35;
+}
+.note-card__lines {
+  border-left: 3px solid var(--surface-2);
+  padding-left: var(--space-3);
+  margin: var(--space-2) 0;
+}
+/* Cada linha da anotação é uma tarefa em potencial: o botão só aparece no
+   hover para a lista não virar um paredão de ícones. */
+.note-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 2px 0;
+}
+.note-line__text { line-height: 1.5; }
+.note-line button { opacity: 0; transition: opacity 0.12s ease; }
+.note-line:hover button,
+.note-line:focus-within button { opacity: 1; }
+@media (hover: none) {
+  .note-line button { opacity: 1; } /* no toque não existe hover */
+}
+.note-card__tags,
+.note-card__tasks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+.note-card__tasks-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

@@ -56,6 +56,7 @@ function renderCards(container, stats) {
     { label: 'Itens para hoje', value: stats.itensHoje, tone: 'accent', route: '#/hoje' },
     { label: 'Atrasados', value: stats.atrasados, tone: 'danger', route: '#/hoje' },
     { label: 'Urgentes', value: stats.urgentes, tone: 'danger', route: '#/tarefas' },
+    { label: 'Anotações a processar', value: stats.anotacoesPendentes, tone: 'accent', route: '#/anotacoes' },
     { label: 'Alta prioridade', value: stats.altaPrioridade, tone: 'warning', route: '#/tarefas' },
     { label: 'Aguardando retorno', value: stats.aguardandoRetorno, tone: 'warning', route: '#/fups' },
     { label: 'Agenda de hoje', value: stats.agendaHoje.length, tone: '', route: '#/agenda' },

@@ -24,6 +24,34 @@ A camada `js/database.js` é uma fachada fina sobre um "adapter" trocável:
 em `js/app.js`). `js/store.js` — onde vive toda a regra de negócio — nunca
 sabe qual dos dois está ativo.
 
+## Anotações de reunião (captura)
+
+A etapa de **captura** do GTD: anotar agora, decidir depois. A tela
+**Anotações** abre com um campo só e foco automático — escreva durante a
+reunião e salve com `Ctrl+Enter`. Data, participantes, área e tags são
+opcionais, escondidos atrás de "Detalhes", para a captura não virar
+formulário.
+
+Depois, ao processar:
+
+- **Cada linha da anotação pode virar uma tarefa por conta própria.** Passe o
+  mouse sobre a linha e clique no `+` — abre o formulário normal de tarefa,
+  já com aquela linha no título e a anotação inteira na observação.
+- A tarefa criada fica **vinculada** à anotação, então você sabe de qual
+  reunião ela nasceu. Uma anotação pode gerar várias tarefas.
+- Quem não gera ação nenhuma é marcada como **processada** e sai da caixa de
+  entrada, sem virar tarefa.
+- A tela abre filtrada em **"A processar"**: é uma caixa de entrada, e o
+  objetivo é esvaziá-la.
+
+O Dashboard mostra quantas anotações faltam processar, e a busca global
+(`Ctrl+K`) procura dentro do texto delas.
+
+> **Ao atualizar para esta versão, rode de novo o
+> [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor** — ele cria a
+> tabela `notes`. Sem ela o app não carrega, porque o Dashboard também
+> consulta as anotações. É idempotente, pode rodar quantas vezes quiser.
+
 ## Quando o app não conecta
 
 Se o login falhar com uma mensagem sobre o servidor não responder, o app

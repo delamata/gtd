@@ -222,20 +222,27 @@ function openCompleteDialog(task) {
   });
 }
 
-export function openTaskForm(existing, onSaved) {
+/**
+ * Abre o formulário de tarefa.
+ * `prefill` serve para quem cria uma tarefa a partir de outro lugar — hoje a
+ * tela de Anotações — sem duplicar o formulário nem desviar da validação,
+ * auditoria e recorrência que passam por store.createTask().
+ */
+export function openTaskForm(existing, onSaved, { prefill = null, title = null } = {}) {
   const isEdit = !!existing;
+  const base = existing || prefill || {};
   const f = {
-    titulo: field({ label: 'Título', name: 'titulo', value: existing?.titulo, full: true }),
-    area: field({ label: 'Área / projeto', name: 'area', value: existing?.area }),
-    responsavel: field({ label: 'Responsável', name: 'responsavel', value: existing?.responsavel || 'André' }),
-    prioridade: field({ label: 'Prioridade', name: 'prioridade', type: 'select', options: toOptions(PRIORIDADE_LABEL), value: existing?.prioridade || 'media' }),
-    status: field({ label: 'Status', name: 'status', type: 'select', options: toOptions(TASK_STATUS_LABEL), value: existing?.status || 'a_fazer' }),
-    prazo: field({ label: 'Data limite', name: 'prazo', type: 'date', value: existing?.prazo }),
-    horario: field({ label: 'Horário (opcional)', name: 'horario', type: 'time', value: existing?.horario }),
-    recorrencia: field({ label: 'Recorrência', name: 'recorrencia', type: 'select', options: toOptions(RECORRENCIA_LABEL), value: existing?.recorrencia || 'nenhuma' }),
-    proximaAcao: field({ label: 'Próxima ação', name: 'proximaAcao', type: 'textarea', value: existing?.proximaAcao, full: true }),
-    observacao: field({ label: 'Observação', name: 'observacao', type: 'textarea', value: existing?.observacao, full: true }),
-    tags: field({ label: 'Tags (separadas por vírgula)', name: 'tags', value: tagsToInputValue(existing?.tags), full: true }),
+    titulo: field({ label: 'Título', name: 'titulo', value: base.titulo, full: true }),
+    area: field({ label: 'Área / projeto', name: 'area', value: base.area }),
+    responsavel: field({ label: 'Responsável', name: 'responsavel', value: base.responsavel || 'André' }),
+    prioridade: field({ label: 'Prioridade', name: 'prioridade', type: 'select', options: toOptions(PRIORIDADE_LABEL), value: base.prioridade || 'media' }),
+    status: field({ label: 'Status', name: 'status', type: 'select', options: toOptions(TASK_STATUS_LABEL), value: base.status || 'a_fazer' }),
+    prazo: field({ label: 'Data limite', name: 'prazo', type: 'date', value: base.prazo }),
+    horario: field({ label: 'Horário (opcional)', name: 'horario', type: 'time', value: base.horario }),
+    recorrencia: field({ label: 'Recorrência', name: 'recorrencia', type: 'select', options: toOptions(RECORRENCIA_LABEL), value: base.recorrencia || 'nenhuma' }),
+    proximaAcao: field({ label: 'Próxima ação', name: 'proximaAcao', type: 'textarea', value: base.proximaAcao, full: true }),
+    observacao: field({ label: 'Observação', name: 'observacao', type: 'textarea', value: base.observacao, full: true }),
+    tags: field({ label: 'Tags (separadas por vírgula)', name: 'tags', value: tagsToInputValue(base.tags), full: true }),
   };
   const body = el('div', { class: 'form-grid' }, Object.values(f).map((x) => x.wrap));
 
@@ -258,6 +265,6 @@ export function openTaskForm(existing, onSaved) {
   };
 
   const footer = modalFooter({ onCancel: () => modal.close(), onSave: save });
-  const modal = openModal({ title: isEdit ? `Editar tarefa ${existing.id}` : 'Nova tarefa', size: 'lg', bodyNode: body, footerNode: footer, onCtrlEnter: save });
+  const modal = openModal({ title: title || (isEdit ? `Editar tarefa ${existing.id}` : 'Nova tarefa'), size: 'lg', bodyNode: body, footerNode: footer, onCtrlEnter: save });
   return modal;
 }

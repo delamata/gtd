@@ -5,8 +5,8 @@
 // ==========================================================================
 import * as db from './database.js';
 import { recordAudit, listAuditLog } from './audit.js';
-import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
-import { validateTask, validateFup, validateAgenda, validateCollaborator, sanitizeText } from './validators.js';
+import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeNote, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
+import { validateTask, validateFup, validateAgenda, validateCollaborator, validateNote, sanitizeText } from './validators.js';
 import {
   nowISO, todayISO, addDaysISO, addMonthsISO, diffDaysISO, isOverdue, isOpenStatus,
   isToday, isTomorrow, isThisWeek, isWithinNextDays, sortBy, PRIORIDADE_ORDEM,
@@ -610,6 +610,144 @@ export async function convertPrepToTask(agendaId) {
 }
 
 // =======================================================================
+// ANOTAÇÕES (captura de reuniões)
+//
+// A etapa de captura do GTD: anotar rápido agora, decidir depois. Uma
+// anotação não é uma tarefa — ela vira uma ou mais tarefas quando você
+// processa (linkNoteToTask), e guarda o vínculo para você saber de qual
+// reunião cada tarefa nasceu.
+// =======================================================================
+export async function listNotes(filters = {}) {
+  const all = await db.getAll('notes');
+  const visible = all.filter((n) => !n.deletedFlag && matchesArchiveFilter(n, filters));
+  const filtered = visible.filter((n) => {
+    if (filters.colaboradorId && n.colaboradorId !== filters.colaboradorId) return false;
+    if (filters.area && n.area !== filters.area) return false;
+    if (filters.pendentes === true && n.processadoEm) return false;
+    if (filters.pendentes === false && !n.processadoEm) return false;
+    if (filters.tag && !(n.tags || []).includes(filters.tag)) return false;
+    if (filters.periodo) {
+      if (filters.periodo === 'hoje' && !isToday(n.data)) return false;
+      if (filters.periodo === 'semana' && !isThisWeek(n.data)) return false;
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      const haystack = [n.id, n.titulo, n.texto, n.area, n.participantes, ...(n.tags || [])]
+        .filter(Boolean).join(' | ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+  return sortBy(filtered, (n) => `${n.data} ${n.criadoEm}`, 'desc');
+}
+
+export async function getNote(id) {
+  return db.getOne('notes', id);
+}
+
+export async function createNote(data) {
+  const validation = validateNote(data);
+  if (!validation.valid) throw new ValidationError(validation.errors);
+  const id = await db.getNextId('N');
+  const record = makeNote(id, data);
+  await db.putOne('notes', record);
+  await recordAudit({ tipoAcao: 'criacao', tipoRegistro: 'note', idRegistro: id, valorNovo: record });
+  emit({ type: 'note:create', record });
+  return record;
+}
+
+export async function updateNote(id, patch) {
+  const current = await db.getOne('notes', id);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const merged = makeNote(id, {
+    ...current, ...patch,
+    criadoEm: current.criadoEm,
+    tarefasIds: current.tarefasIds,
+    processadoEm: current.processadoEm,
+  });
+  const validation = validateNote(merged);
+  if (!validation.valid) throw new ValidationError(validation.errors);
+  await db.putOne('notes', merged);
+  await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: merged });
+  emit({ type: 'note:update', record: merged });
+  return merged;
+}
+
+/**
+ * Registra que uma tarefa nasceu desta anotação. A tarefa em si é criada
+ * pelo formulário comum de tarefas (mesma validação, mesma auditoria, mesmo
+ * fluxo de recorrência) — aqui só se guarda o vínculo e se marca a anotação
+ * como processada, na primeira tarefa gerada.
+ */
+export async function linkNoteToTask(noteId, taskId) {
+  const current = await db.getOne('notes', noteId);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const task = await db.getOne('tasks', taskId);
+  if (!task) throw new Error('Tarefa não encontrada.');
+  if (current.tarefasIds.includes(taskId)) return current;
+  const updated = {
+    ...current,
+    tarefasIds: [...current.tarefasIds, taskId],
+    processadoEm: current.processadoEm || nowISO(),
+    atualizadoEm: nowISO(),
+  };
+  await db.putOne('notes', updated);
+  await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'note', idRegistro: noteId, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'note:update', record: updated });
+  return updated;
+}
+
+/** Marca como processada sem gerar tarefa — a anotação era só registro. */
+export async function markNoteProcessed(id, processado = true) {
+  const current = await db.getOne('notes', id);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const updated = { ...current, processadoEm: processado ? (current.processadoEm || nowISO()) : '', atualizadoEm: nowISO() };
+  await db.putOne('notes', updated);
+  await recordAudit({ tipoAcao: 'edicao', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'note:update', record: updated });
+  return updated;
+}
+
+export async function archiveNote(id) {
+  const current = await db.getOne('notes', id);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const updated = { ...current, arquivada: true, atualizadoEm: nowISO() };
+  await db.putOne('notes', updated);
+  await recordAudit({ tipoAcao: 'arquivamento', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'note:archive', record: updated });
+  return updated;
+}
+
+export async function unarchiveNote(id) {
+  const current = await db.getOne('notes', id);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const updated = { ...current, arquivada: false, atualizadoEm: nowISO() };
+  await db.putOne('notes', updated);
+  await recordAudit({ tipoAcao: 'desarquivamento', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'note:unarchive', record: updated });
+  return updated;
+}
+
+/** Exclusão lógica — some de tudo, inclusive do filtro de arquivadas. */
+export async function deleteNote(id) {
+  const current = await db.getOne('notes', id);
+  if (!current) throw new Error('Anotação não encontrada.');
+  const updated = { ...current, deletedFlag: true, atualizadoEm: nowISO() };
+  await db.putOne('notes', updated);
+  await recordAudit({ tipoAcao: 'exclusao', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: updated });
+  emit({ type: 'note:delete', record: updated });
+  return updated;
+}
+
+/** As tarefas que nasceram de uma anotação (ignora as já excluídas). */
+export async function getNoteTasks(noteId) {
+  const note = await db.getOne('notes', noteId);
+  if (!note) return [];
+  const tasks = await Promise.all(note.tarefasIds.map((id) => db.getOne('tasks', id)));
+  return tasks.filter((t) => t && !t.deletedFlag);
+}
+
+// =======================================================================
 // HISTÓRICO (conclusões)
 // =======================================================================
 export async function listHistory(filters = {}) {
@@ -758,6 +896,7 @@ export async function getDashboardStats() {
     itensHoje: openTasks.filter((t) => isToday(t.prazo)).length + openFups.filter((f) => isToday(f.proximoFupEm) || isToday(f.prazoFinal)).length + agenda.filter((a) => isToday(a.data) && isOpenStatus(a.status)).length,
     atrasados: overdue.length,
     urgentes: [...openTasks, ...openFups].filter(isUrgente).length,
+    anotacoesPendentes: (await listNotes({ pendentes: true })).length,
     altaPrioridade: openTasks.filter((t) => t.prioridade === 'alta').length + openFups.filter((f) => f.prioridade === 'alta').length,
     aguardandoRetorno: openFups.filter((f) => f.status === 'aguardando_retorno').length + openTasks.filter((t) => t.status === 'aguardando_retorno').length,
     agendaHoje: annotateConflicts(agenda.filter((a) => isToday(a.data))),
@@ -792,7 +931,7 @@ function last7DaysCounts(history) {
 export async function globalSearch(query) {
   if (!query || !query.trim()) return [];
   const q = query.trim().toLowerCase();
-  const [tasks, fups, agenda, collaborators] = await Promise.all([listTasks(), listFups(), listAgenda(), listCollaborators()]);
+  const [tasks, fups, agenda, collaborators, notes] = await Promise.all([listTasks(), listFups(), listAgenda(), listCollaborators(), listNotes()]);
   const results = [];
   const test = (str) => str && String(str).toLowerCase().includes(q);
   for (const t of tasks) {
@@ -814,6 +953,11 @@ export async function globalSearch(query) {
   for (const c of collaborators) {
     if (test(c.id) || test(c.nome) || test(c.time) || test(c.cargo)) {
       results.push({ type: 'collaborator', id: c.id, label: `${c.id} · ${c.nome}`, sublabel: c.time, route: '#/colaboradores' });
+    }
+  }
+  for (const n of notes) {
+    if (test(n.id) || test(n.titulo) || test(n.texto) || test(n.area) || test(n.participantes) || (n.tags || []).some(test)) {
+      results.push({ type: 'note', id: n.id, label: `${n.id} · ${n.titulo}`, sublabel: n.data, route: '#/anotacoes' });
     }
   }
   return results.slice(0, 30);

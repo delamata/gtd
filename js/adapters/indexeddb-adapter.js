@@ -9,12 +9,12 @@
 export const DB_NAME = 'gtd_delamata_db';
 // Versão ESTRUTURAL do IndexedDB (object stores / índices). Incrementar
 // sempre que uma store ou índice precisar mudar de formato.
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 // Versão LÓGICA do esquema de dados (formato dos registros). Permite migrar
 // o *conteúdo* dos registros mesmo sem alterar a estrutura de stores/índices.
 export const SCHEMA_VERSION = 1;
 
-export const STORE_NAMES = ['tasks', 'fups', 'agenda', 'collaborators', 'history', 'auditLog', 'meta'];
+export const STORE_NAMES = ['tasks', 'fups', 'agenda', 'collaborators', 'notes', 'history', 'auditLog', 'meta'];
 
 let dbPromise = null;
 
@@ -64,7 +64,15 @@ function runStructuralMigrations(db, oldVersion) {
     db.createObjectStore('auditLog', { keyPath: 'id' });
     db.createObjectStore('meta', { keyPath: 'key' });
   }
-  // if (oldVersion < 2) { /* futuras alterações estruturais aqui */ }
+  if (oldVersion < 2) {
+    // Anotações (captura de reuniões) — ver makeNote em js/models.js.
+    const notes = db.createObjectStore('notes', { keyPath: 'id' });
+    notes.createIndex('data', 'data');
+    notes.createIndex('colaboradorId', 'colaboradorId');
+    notes.createIndex('processadoEm', 'processadoEm');
+    notes.createIndex('deletedFlag', 'deletedFlag');
+  }
+  // if (oldVersion < 3) { /* futuras alterações estruturais aqui */ }
 }
 
 /** Abre (ou reaproveita) a conexão com o IndexedDB. */

@@ -1,7 +1,7 @@
 // ==========================================================================
 // models.js — formas (shapes) canônicas e fábricas de entidades
 // ==========================================================================
-import { nowISO } from './utils.js';
+import { nowISO, todayISO } from './utils.js';
 import { sanitizeText, sanitizeTags } from './validators.js';
 
 export function formatId(prefix, n) {
@@ -101,6 +101,40 @@ export function makeCollaborator(id, data = {}) {
     criadoEm: data.criadoEm || nowISO(),
     deletedFlag: !!data.deletedFlag,
   };
+}
+
+/**
+ * Cria uma Anotação — a etapa de CAPTURA do GTD: registrar rápido, durante
+ * ou logo após a reunião, sem decidir nada ainda. Virar tarefa é um segundo
+ * momento (ver store.linkNoteToTask), e uma mesma anotação pode gerar
+ * várias tarefas — por isso `tarefasIds` é lista, não campo único.
+ */
+export function makeNote(id, data = {}) {
+  const ts = nowISO();
+  const texto = sanitizeText(data.texto, { maxLength: 10000 });
+  return {
+    id,
+    // Sem título digitado, usa a primeira linha do texto: na captura rápida
+    // ninguém quer preencher dois campos.
+    titulo: sanitizeText(data.titulo, { maxLength: 200 }) || firstLine(texto),
+    texto,
+    data: data.data || todayISO(),
+    colaboradorId: data.colaboradorId || '',
+    area: sanitizeText(data.area, { maxLength: 120 }),
+    participantes: sanitizeText(data.participantes, { maxLength: 300 }),
+    tags: sanitizeTags(data.tags),
+    tarefasIds: Array.isArray(data.tarefasIds) ? data.tarefasIds : [],
+    processadoEm: data.processadoEm || '',
+    criadoEm: data.criadoEm || ts,
+    atualizadoEm: ts,
+    arquivada: !!data.arquivada,
+    deletedFlag: !!data.deletedFlag,
+  };
+}
+
+function firstLine(texto) {
+  const linha = String(texto || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
+  return linha.slice(0, 200);
 }
 
 /** Cria uma entrada permanente do histórico de conclusões. */

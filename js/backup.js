@@ -7,12 +7,10 @@
 import * as db from './database.js';
 import { nowISO, todayISO, isWithinNextDays, isOverdue, downloadTextFile, getPreferences } from './utils.js';
 
-const ID_PREFIXES = ['T', 'F', 'A', 'C', 'P'];
-
 export async function exportAllData() {
-  const [tasks, fups, agenda, collaborators, history, auditLog, meta] = await Promise.all([
-    db.getAll('tasks'), db.getAll('fups'), db.getAll('agenda'),
-    db.getAll('collaborators'), db.getAll('history'), db.getAll('auditLog'), db.getMeta(),
+  const [tasks, fups, agenda, collaborators, notes, history, auditLog, meta] = await Promise.all([
+    db.getAll('tasks'), db.getAll('fups'), db.getAll('agenda'), db.getAll('collaborators'),
+    db.getAll('notes'), db.getAll('history'), db.getAll('auditLog'), db.getMeta(),
   ]);
   return {
     versaoEsquema: db.SCHEMA_VERSION,
@@ -22,6 +20,7 @@ export async function exportAllData() {
     tarefas: tasks,
     fups,
     agenda,
+    anotacoes: notes,
     historico: history,
     logs: auditLog,
     meta: meta || null,
@@ -66,6 +65,11 @@ export function validateBackupShape(json) {
     for (const field of ['colaboradores', 'tarefas', 'fups', 'agenda', 'historico']) {
       if (!Array.isArray(json[field])) errors.push(`Campo "${field}" ausente ou não é uma lista.`);
     }
+    // "anotacoes" entrou depois: backups anteriores não têm e continuam
+    // válidos — só precisa ser uma lista quando vier.
+    if (json.anotacoes !== undefined && !Array.isArray(json.anotacoes)) {
+      errors.push('Campo "anotacoes" não é uma lista.');
+    }
   }
   const valid = errors.length === 0;
   const summary = valid
@@ -74,6 +78,7 @@ export function validateBackupShape(json) {
         tarefas: json.tarefas.length,
         fups: json.fups.length,
         agenda: json.agenda.length,
+        anotacoes: Array.isArray(json.anotacoes) ? json.anotacoes.length : 0,
         historico: json.historico.length,
         logs: Array.isArray(json.logs) ? json.logs.length : 0,
         exportadoEm: json.exportadoEm,
@@ -99,6 +104,7 @@ function recomputeCounters(data, previousCounters = {}) {
   scan(data.agenda, 'A');
   scan(data.historico, 'C');
   scan(data.colaboradores, 'P');
+  scan(data.anotacoes || [], 'N');
   return counters;
 }
 
@@ -131,6 +137,7 @@ export async function importBackupData(json, { mode = 'replace', autoBackup = tr
     await db.putMany('tasks', json.tarefas);
     await db.putMany('fups', json.fups);
     await db.putMany('agenda', json.agenda);
+    if (Array.isArray(json.anotacoes)) await db.putMany('notes', json.anotacoes);
     await db.putMany('history', json.historico);
     if (Array.isArray(json.logs)) await db.putMany('auditLog', json.logs);
     const counters = recomputeCounters(json, {});
@@ -141,6 +148,7 @@ export async function importBackupData(json, { mode = 'replace', autoBackup = tr
     await db.putMany('tasks', json.tarefas);
     await db.putMany('fups', json.fups);
     await db.putMany('agenda', json.agenda);
+    if (Array.isArray(json.anotacoes)) await db.putMany('notes', json.anotacoes);
     await db.putMany('history', json.historico);
     if (Array.isArray(json.logs)) await db.putMany('auditLog', json.logs);
     const counters = recomputeCounters(json, currentMeta.counters || {});
