@@ -89,7 +89,7 @@ export function renderLogin(root, { onSuccess }) {
 
   const card = el('div', { class: 'card login-screen__card' }, [
     el('div', { class: 'login-screen__brand' }, [
-      el('div', { class: 'login-screen__brand-mark' }, [logoMark({ size: 28, title: 'GTD Executivo' })]),
+      el('div', { class: 'login-screen__brand-mark' }, [logoMark({ size: 40, boxed: true })]),
       el('div', {}, [
         el('div', { class: 'login-screen__title', text: 'GTD Executivo' }),
         el('div', { class: 'login-screen__subtitle', text: 'André Delamata' }),

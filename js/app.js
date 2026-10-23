@@ -101,7 +101,7 @@ async function startApp() {
 
 function buildSidebar() {
   const brandMark = document.getElementById('sidebar-brand-mark');
-  if (brandMark && !brandMark.firstChild) brandMark.appendChild(logoMark({ size: 24, title: 'GTD Executivo' }));
+  if (brandMark && !brandMark.firstChild) brandMark.appendChild(logoMark({ size: 28 }));
 
   const nav = document.getElementById('sidebar-nav');
   clearNode(nav);

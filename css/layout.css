@@ -34,15 +34,13 @@
   border-bottom: 1px solid rgba(255,255,255,0.12);
   min-height: var(--topbar-height);
 }
-/* O contêiner é o quadrado arredondado da marca; o monograma vem de
-   logoMark() e herda a cor por currentColor. O raio acompanha a proporção
-   do ícone do app (7/32 do lado) para favicon e marca na tela baterem. */
+/* Sobre a sidebar escura a marca aparece sem caixa: só o símbolo, em
+   amarelo, herdado por currentColor. No login (cartão branco) quem entra
+   é o ícone completo, com fundo e gradientes — ver logoMark({boxed}). */
 .sidebar__brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  background: var(--color-yellow);
-  color: var(--color-navy);
+  width: 28px;
+  height: 28px;
+  color: var(--color-yellow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,9 +183,6 @@
 .login-screen__brand-mark {
   width: 40px;
   height: 40px;
-  border-radius: 9px;
-  background: var(--color-navy);
-  color: var(--color-yellow);
   display: flex;
   align-items: center;
   justify-content: center;

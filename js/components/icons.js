@@ -165,38 +165,41 @@ export function iconButton(name, label, onClick) {
 }
 
 // ---------------------------------------------------------------------
-// Marca GT
+// Marca GTD Executivo — "trajetória ascendente"
 //
-// Monograma desenhado como GEOMETRIA (círculo + retângulos), não como
-// texto: o ícone antigo usava <text font-family="Arial">, que renderiza
-// diferente em cada sistema operacional e some se a fonte não existir.
+// Símbolo em vez de monograma: uma linha que cai e volta a subir,
+// terminando em seta. Diz progresso e retomada, que é do que o painel
+// trata — e conversa com os gráficos de linha do dashboard. O "GT" saiu
+// do ícone porque o nome da marca sempre aparece em texto ao lado dele.
 //
-// O G é um anel com a contraforma e a abertura recortadas por <mask> —
-// assim a marca fica correta sobre qualquer fundo, inclusive transparente,
-// em vez de depender de pintar o fundo por cima. A abertura tem corte
-// vertical (e não radial) e é generosa de propósito: a 16px, um vão
-// estreito fecha na antialiasing e o G vira um "O".
+// A queda no meio do percurso é proposital: uma diagonal reta vira uma
+// seta genérica de sistema; o vale dá leitura de trajetória real.
 //
 // Os mesmos números estão em assets/icons/*.svg (favicon, ícone do app e
-// PNGs de home screen), gerados juntos — ver assets/icons/README.md.
+// PNGs de home screen) — ver assets/icons/README.md.
 // ---------------------------------------------------------------------
 const LOGO = {
-  cx: 9.7, cy: 16, rOut: 6.38, rIn: 3.48,   // anel do G (peso 2.90)
-  cutX: 12.1,                                // corte vertical da abertura
-  tongue: [9.7, 14.55, 6.08, 2.9],           // x, y, largura, altura
-  tBar: [17.3, 9.8, 11, 2.9],
-  tStem: [21.35, 9.8, 2.9, 12.4],
+  rx: 7,
+  path: [[6.8, 22.6], [12.4, 17], [16.8, 19.8], [23.4, 11.5]],
+  stroke: 3.2,
+  head: [[26.8, 7.6], [19.4, 7.6], [26.8, 15]],   // ângulo reto no canto para onde a seta aponta
+  bg: ['#0A1C2B', '#1E425F'],
+  fg: ['#FFD400', '#FFE77A'],
 };
 
-let logoMaskSeq = 0;
+let logoSeq = 0;
+
+const pathD = (pts) => 'M' + pts.map(([x, y]) => `${x} ${y}`).join(' L');
 
 /**
- * Monograma "GT" na cor herdada do CSS (currentColor), sem contêiner —
- * quem desenha o quadrado arredondado é a classe que o envolve
- * (.sidebar__brand-mark, .login-screen__brand-mark).
+ * Marca do app.
+ * `boxed: false` (padrão) devolve só o símbolo, na cor herdada do CSS —
+ * é a forma usada sobre a sidebar escura. `boxed: true` devolve o ícone
+ * completo, com o quadrado arredondado e os gradientes, idêntico ao
+ * favicon — usado no cartão branco do login.
  */
-export function logoMark({ size = 32, title = 'GT' } = {}) {
-  const maskId = `gt-counter-${++logoMaskSeq}`; // único por instância: a mesma marca pode aparecer duas vezes na página
+export function logoMark({ size = 32, title = 'GTD Executivo', boxed = false } = {}) {
+  const uid = ++logoSeq; // gradientes precisam de id único: a marca pode aparecer duas vezes na página
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 32 32');
   svg.setAttribute('width', size);
@@ -205,37 +208,32 @@ export function logoMark({ size = 32, title = 'GT' } = {}) {
   svg.setAttribute('aria-label', title);
   svg.style.display = 'block';
 
-  const rect = (parent, [x, y, w, h], fill) => {
-    const r = document.createElementNS(SVG_NS, 'rect');
-    r.setAttribute('x', x); r.setAttribute('y', y);
-    r.setAttribute('width', w); r.setAttribute('height', h);
-    if (fill) r.setAttribute('fill', fill);
-    parent.appendChild(r);
-    return r;
-  };
-  const circle = (parent, cx, cy, r, fill) => {
-    const c = document.createElementNS(SVG_NS, 'circle');
-    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
-    if (fill) c.setAttribute('fill', fill);
-    parent.appendChild(c);
-    return c;
+  const make = (tag, attrs) => {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    return node;
   };
 
-  const defs = document.createElementNS(SVG_NS, 'defs');
-  const mask = document.createElementNS(SVG_NS, 'mask');
-  mask.setAttribute('id', maskId);
-  rect(mask, [0, 0, 32, 32], '#fff');                              // mantém tudo
-  circle(mask, LOGO.cx, LOGO.cy, LOGO.rIn, '#000');                // recorta a contraforma
-  rect(mask, [LOGO.cutX, 0, 32 - LOGO.cutX, LOGO.tongue[1]], '#000'); // recorta a abertura
-  defs.appendChild(mask);
-  svg.appendChild(defs);
+  let fill = 'currentColor';
+  if (boxed) {
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    const gradient = (id, [c0, c1], coords) => {
+      const lg = make('linearGradient', { id, ...coords });
+      lg.appendChild(make('stop', { offset: '0', 'stop-color': c0 }));
+      lg.appendChild(make('stop', { offset: '1', 'stop-color': c1 }));
+      return lg;
+    };
+    defs.appendChild(gradient(`gt-bg-${uid}`, LOGO.bg, { x1: '0', y1: '0', x2: '1', y2: '1' }));
+    defs.appendChild(gradient(`gt-fg-${uid}`, LOGO.fg, { x1: '0', y1: '1', x2: '1', y2: '0' }));
+    svg.appendChild(defs);
+    svg.appendChild(make('rect', { width: 32, height: 32, rx: LOGO.rx, fill: `url(#gt-bg-${uid})` }));
+    fill = `url(#gt-fg-${uid})`;
+  }
 
-  const g = document.createElementNS(SVG_NS, 'g');
-  g.setAttribute('fill', 'currentColor');
-  circle(g, LOGO.cx, LOGO.cy, LOGO.rOut).setAttribute('mask', `url(#${maskId})`);
-  rect(g, LOGO.tongue);
-  rect(g, LOGO.tBar);
-  rect(g, LOGO.tStem);
-  svg.appendChild(g);
+  svg.appendChild(make('path', {
+    d: pathD(LOGO.path), fill: 'none', stroke: fill, 'stroke-width': LOGO.stroke,
+    'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+  }));
+  svg.appendChild(make('path', { d: pathD(LOGO.head) + ' Z', fill }));
   return svg;
 }
