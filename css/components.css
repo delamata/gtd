@@ -367,26 +367,45 @@
   color: var(--color-navy);
   line-height: 1.35;
 }
-.note-card__lines {
-  border-left: 3px solid var(--surface-2);
-  padding-left: var(--space-3);
-  margin: var(--space-2) 0;
-}
-/* Cada linha da anotação é uma tarefa em potencial: o botão só aparece no
-   hover para a lista não virar um paredão de ícones. */
-.note-line {
+/* Cada item de ação é um card com o botão SEMPRE visível. A versão
+   anterior revelava a ação no hover e, com isso, o recurso principal da
+   tela ficava invisível — e inalcançável no celular, onde hover não
+   existe. */
+.note-items {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-2);
-  padding: 2px 0;
+  margin: var(--space-3) 0;
 }
-.note-line__text { line-height: 1.5; }
-.note-line button { opacity: 0; transition: opacity 0.12s ease; }
-.note-line:hover button,
-.note-line:focus-within button { opacity: 1; }
-@media (hover: none) {
-  .note-line button { opacity: 1; } /* no toque não existe hover */
+.note-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.note-item:hover { border-color: var(--color-blue); }
+.note-item__text { line-height: 1.45; }
+.note-item__action { flex-shrink: 0; }
+.note-item.is-converted { background: var(--surface-2); border-style: dashed; }
+.note-item.is-converted .note-item__text { color: var(--color-text-muted); }
+.note-item__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success);
+}
+.note-card__empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: var(--space-2) 0;
 }
 .note-card__tags,
 .note-card__tasks {

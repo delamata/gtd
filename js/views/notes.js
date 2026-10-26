@@ -199,9 +199,21 @@ async function renderList(container, notes, collaborators, refresh) {
   }
 }
 
-/** As linhas da anotação — cada uma pode virar uma tarefa por conta própria. */
-function noteLines(texto) {
-  return String(texto || '').split('\n').map((l) => l.replace(/^[-*•\s]+/, '').trim()).filter(Boolean);
+/** Um item de ação: o texto e o caminho para virar tarefa (ou a tarefa que já virou). */
+function noteItemCard(note, item, refresh) {
+  const convertido = !!item.tarefa;
+  return el('div', { class: `note-item${convertido ? ' is-converted' : ''}` }, [
+    el('span', { class: 'note-item__text', text: item.texto }),
+    convertido
+      ? el('span', { class: 'note-item__done', title: 'Já virou tarefa' }, [
+          icon('completed', { size: 14 }),
+          el('span', { text: item.tarefa.id }),
+        ])
+      : el('button', {
+          class: 'btn btn--sm btn--secondary note-item__action', type: 'button',
+          onClick: () => criarTarefa(note, refresh, item.texto),
+        }, [icon('plus', { size: 14 }), 'Criar tarefa']),
+  ]);
 }
 
 async function noteCard(note, nomeDe, refresh) {
@@ -215,16 +227,16 @@ async function noteCard(note, nomeDe, refresh) {
     note.area ? el('span', { text: `· ${note.area}` }) : null,
   ];
 
-  const linhas = noteLines(note.texto);
-  const corpo = el('div', { class: 'note-card__lines' }, linhas.map((linha) =>
-    el('div', { class: 'note-line' }, [
-      el('span', { class: 'note-line__text', text: linha }),
-      iconButton('plus', 'Criar tarefa com esta linha', () => criarTarefa(note, refresh, linha)),
-    ])
-  ));
+  // Cada item de ação é um card com a ação à vista. A versão anterior
+  // escondia o botão até o hover, e com isso o recurso principal da tela
+  // ficava invisível — inclusive no celular, onde hover não existe.
+  const itens = await store.getNoteItems(note.id);
+  const corpo = itens.length
+    ? el('div', { class: 'note-items' }, itens.map((item) => noteItemCard(note, item, refresh)))
+    : el('p', { class: 'note-card__empty', text: 'Sem itens de ação nesta anotação.' });
 
   const acoes = el('div', { class: 'item-row__actions' }, [
-    el('button', { class: 'btn btn--sm btn--secondary', type: 'button', onClick: () => criarTarefa(note, refresh) }, [icon('tasks', { size: 14 }), 'Criar tarefa']),
+    el('button', { class: 'btn btn--sm btn--ghost', type: 'button', onClick: () => criarTarefa(note, refresh) }, [icon('tasks', { size: 14 }), 'Tarefa da anotação inteira']),
     pendente
       ? iconButton('completed', 'Marcar como processada', async () => {
           await store.markNoteProcessed(note.id, true);

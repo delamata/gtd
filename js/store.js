@@ -5,7 +5,7 @@
 // ==========================================================================
 import * as db from './database.js';
 import { recordAudit, listAuditLog } from './audit.js';
-import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeNote, makeDemand, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
+import { makeTask, makeFup, makeAgendaItem, makeCollaborator, makeNote, noteActionItems, makeDemand, makeHistoryEntry, makeFupHistoryEntry, DEFAULT_COLLABORATOR_COLORS } from './models.js';
 import { validateTask, validateFup, validateAgenda, validateCollaborator, validateNote, validateDemand, sanitizeText } from './validators.js';
 import {
   nowISO, todayISO, addDaysISO, addMonthsISO, diffDaysISO, isOverdue, isOpenStatus,
@@ -737,6 +737,25 @@ export async function deleteNote(id) {
   await recordAudit({ tipoAcao: 'exclusao', tipoRegistro: 'note', idRegistro: id, valorAnterior: current, valorNovo: updated });
   emit({ type: 'note:delete', record: updated });
   return updated;
+}
+
+/**
+ * Os itens de ação da anotação, cada um com a tarefa que nasceu dele — se
+ * houver. O vínculo por item é inferido pelo título: ao criar a tarefa a
+ * partir de uma linha, a linha vira o título. É uma pista, não um registro:
+ * se o título for editado na hora de salvar, o item deixa de aparecer como
+ * convertido. A lista completa de tarefas geradas (getNoteTasks) não depende
+ * disso e continua exata.
+ */
+export async function getNoteItems(noteId) {
+  const note = await db.getOne('notes', noteId);
+  if (!note) return [];
+  const tarefas = await getNoteTasks(noteId);
+  const porTitulo = new Map(tarefas.map((t) => [t.titulo.trim(), t]));
+  return noteActionItems(note.texto, { titulo: note.titulo }).map((texto) => ({
+    texto,
+    tarefa: porTitulo.get(texto.slice(0, 200).trim()) || null,
+  }));
 }
 
 /** As tarefas que nasceram de uma anotação (ignora as já excluídas). */

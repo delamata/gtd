@@ -132,6 +132,21 @@ export function makeNote(id, data = {}) {
   };
 }
 
+/**
+ * Os itens de ação de uma anotação: cada linha é um candidato a tarefa.
+ * Tira marcadores de lista ("- ", "* ", "• ") e linhas vazias, e descarta a
+ * linha que virou título — senão ela apareceria duas vezes na tela, já que
+ * o título é derivado dela quando não é digitado.
+ */
+export function noteActionItems(texto, { titulo = '' } = {}) {
+  const linhas = String(texto || '')
+    .split('\n')
+    .map((l) => l.replace(/^[-*•\s]+/, '').trim())
+    .filter(Boolean);
+  if (titulo && linhas.length && linhas[0] === titulo.trim()) return linhas.slice(1);
+  return linhas;
+}
+
 function firstLine(texto) {
   const linha = String(texto || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
   return linha.slice(0, 200);

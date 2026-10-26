@@ -157,3 +157,56 @@ test('o ID de anotação usa o prefixo N e não colide com os outros', async () 
   const note = await store.createNote({ texto: 'checando o id' });
   assert.match(note.id, /^N\d+$/);
 });
+
+// --------------------------------------------------------------------
+// Itens de ação: cada linha da anotação é um card que pode virar tarefa.
+// --------------------------------------------------------------------
+import { noteActionItems } from '../js/models.js';
+
+test('cada linha vira um item de ação, sem marcadores de lista', () => {
+  const itens = noteActionItems('- Revisar contrato\n* Pedir proposta\n• Agendar retorno');
+  assert.deepEqual(itens, ['Revisar contrato', 'Pedir proposta', 'Agendar retorno']);
+});
+
+test('linhas vazias e espaços sobrando não viram item', () => {
+  assert.deepEqual(noteActionItems('  primeiro  \n\n\n   \n  segundo'), ['primeiro', 'segundo']);
+  assert.deepEqual(noteActionItems(''), []);
+  assert.deepEqual(noteActionItems(null), []);
+});
+
+test('a linha que virou título não se repete como item', () => {
+  const texto = 'Reunião VTEX\nAditivo de contrato\nIntegração OK';
+  assert.deepEqual(noteActionItems(texto, { titulo: 'Reunião VTEX' }), ['Aditivo de contrato', 'Integração OK']);
+  // título digitado, diferente da primeira linha: nenhuma linha some
+  assert.equal(noteActionItems(texto, { titulo: 'Outro título' }).length, 3);
+});
+
+test('getNoteItems marca o item cuja tarefa já foi criada', async () => {
+  const note = await store.createNote({ texto: 'Reunião X\nMandar o aditivo\nCobrar a integração' });
+  let itens = await store.getNoteItems(note.id);
+  assert.deepEqual(itens.map((i) => i.texto), ['Mandar o aditivo', 'Cobrar a integração']);
+  assert.ok(itens.every((i) => i.tarefa === null), 'nada convertido ainda');
+
+  const task = await store.createTask({ titulo: 'Mandar o aditivo' });
+  await store.linkNoteToTask(note.id, task.id);
+
+  itens = await store.getNoteItems(note.id);
+  assert.equal(itens[0].tarefa.id, task.id, 'o item convertido aponta para a tarefa');
+  assert.equal(itens[1].tarefa, null, 'o outro continua pendente');
+});
+
+test('o vínculo por item é uma pista: título editado deixa de casar, mas a lista geral não erra', async () => {
+  const note = await store.createNote({ texto: 'Reunião Y\nItem original' });
+  const task = await store.createTask({ titulo: 'Item com título alterado na hora de salvar' });
+  await store.linkNoteToTask(note.id, task.id);
+
+  const itens = await store.getNoteItems(note.id);
+  assert.equal(itens[0].tarefa, null, 'a pista por título não casa — e isso é esperado');
+  const tarefas = await store.getNoteTasks(note.id);
+  assert.equal(tarefas.length, 1, 'a lista de tarefas geradas continua exata');
+});
+
+test('anotação de uma linha só (que virou título) não mostra item nenhum', async () => {
+  const note = await store.createNote({ texto: 'Só um lembrete' });
+  assert.deepEqual(await store.getNoteItems(note.id), []);
+});

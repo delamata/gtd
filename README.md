@@ -34,9 +34,14 @@ formulário.
 
 Depois, ao processar:
 
-- **Cada linha da anotação pode virar uma tarefa por conta própria.** Passe o
-  mouse sobre a linha e clique no `+` — abre o formulário normal de tarefa,
-  já com aquela linha no título e a anotação inteira na observação.
+- **Cada linha da anotação vira um card com o botão "Criar tarefa"**, sempre
+  visível. Clicar abre o formulário normal de tarefa, já com aquela linha no
+  título e a anotação inteira na observação.
+- O card de um item que já virou tarefa fica esmaecido, mostrando o ID dela.
+  Esse vínculo por item é inferido pelo título, então é uma **pista**: se
+  você renomear a tarefa antes de salvar, o card deixa de aparecer como
+  convertido. A lista "Tarefas geradas" no rodapé da anotação não depende
+  disso e continua exata.
 - A tarefa criada fica **vinculada** à anotação, então você sabe de qual
   reunião ela nasceu. Uma anotação pode gerar várias tarefas.
 - Quem não gera ação nenhuma é marcada como **processada** e sai da caixa de
