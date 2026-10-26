@@ -87,10 +87,12 @@ virar problema de verdade, os caminhos são exigir um código combinado com a
 equipe ou pôr um captcha (o que precisaria de uma Edge Function). Hoje não
 tem nenhum dos dois.
 
-> **Ao atualizar para esta versão, rode de novo o
-> [`supabase/schema.sql`](supabase/schema.sql)** — ele cria a tabela
-> `demands` e a função `submit_demand()`. Sem isso o app não carrega e o
-> formulário não envia.
+> **Ao atualizar para esta versão, rode o SQL no Supabase** — senão o app
+> mostra "O banco de dados está desatualizado" e o formulário não envia.
+> Duas opções, as duas idempotentes:
+> [`supabase/schema.sql`](supabase/schema.sql) inteiro, ou só
+> [`supabase/add-demands.sql`](supabase/add-demands.sql), que cria apenas a
+> tabela `demands`, a função `submit_demand()`, o RLS e o Realtime dela.
 
 ## Quando o app não conecta
 
