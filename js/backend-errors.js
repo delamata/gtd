@@ -53,6 +53,25 @@ export async function probeBackend({ timeoutMs = 8000, fetchImpl = globalThis.fe
   }
 }
 
+/**
+ * O código espera uma tabela ou coluna que o banco não tem — quase sempre
+ * porque supabase/schema.sql não foi rodado depois de uma atualização.
+ * Vale a pena separar esse caso: a mensagem crua do Postgres não diz a
+ * quem a lê o que fazer, e a correção é sempre a mesma.
+ */
+export function isSchemaOutOfDate(err) {
+  if (!err) return false;
+  const code = String(err.code || '');
+  // 42P01 tabela inexistente · 42703 coluna inexistente (Postgres)
+  // PGRST20x: o PostgREST não achou a tabela/coluna no cache de esquema
+  if (code === '42P01' || code === '42703' || /^PGRST20\d$/.test(code)) return true;
+  const msg = String(err.message || '').toLowerCase();
+  return /relation .* does not exist/.test(msg)
+    || /column .* does not exist/.test(msg)
+    || /could not find the .* (table|column)/.test(msg)
+    || msg.includes('schema cache');
+}
+
 const MENSAGENS_CONHECIDAS = {
   'Invalid login credentials': 'E-mail ou senha incorretos.',
   'Email not confirmed': 'Este e-mail ainda não foi confirmado.',
@@ -85,6 +104,16 @@ export function describeBackendError(err, probe = null) {
         'O projeto Supabase pode estar pausado — no plano gratuito ele hiberna após alguns dias sem uso. Abra o painel e clique em "Restore project".',
         'Numa rede corporativa, o domínio pode estar bloqueado. Teste pelo 4G do celular para confirmar.',
         'Extensões de bloqueio de anúncios ou rastreadores também barram a requisição — tente numa janela anônima.',
+      ],
+    };
+  }
+  if (isSchemaOutOfDate(err)) {
+    return {
+      titulo: 'O banco de dados está desatualizado.',
+      detalhe: `${(err && err.message) || ''} ${(err && err.hint) || ''}`.trim(),
+      comoResolver: [
+        'Abra o SQL Editor do Supabase, cole o conteúdo de supabase/schema.sql e rode. Ele cria o que estiver faltando e é idempotente — pode rodar quantas vezes quiser.',
+        'Depois recarregue esta página com Ctrl+Shift+R.',
       ],
     };
   }

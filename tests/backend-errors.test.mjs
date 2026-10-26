@@ -88,3 +88,44 @@ test('o link do painel aponta para o projeto configurado', () => {
   assert.equal(SUPABASE_DASHBOARD_URL, `https://supabase.com/dashboard/project/${SUPABASE_PROJECT_REF}`);
   assert.ok(!SUPABASE_PROJECT_REF.includes('.'), 'a referência é só o subdomínio');
 });
+
+// --------------------------------------------------------------------
+// "Banco desatualizado": o código espera uma tabela/coluna que não existe
+// — quase sempre schema.sql não rodado depois de uma atualização. Já
+// aconteceu duas vezes (coluna `arquivada`, tabelas `notes`/`demands`), e
+// nas duas a mensagem crua do Postgres não dizia o que fazer.
+// --------------------------------------------------------------------
+import { isSchemaOutOfDate } from '../js/backend-errors.js';
+
+test('reconhece tabela ou coluna inexistente pelos códigos do Postgres e do PostgREST', () => {
+  assert.equal(isSchemaOutOfDate({ code: '42P01', message: 'relation "public.notes" does not exist' }), true);
+  assert.equal(isSchemaOutOfDate({ code: '42703', message: 'column "arquivada" does not exist' }), true);
+  assert.equal(isSchemaOutOfDate({ code: 'PGRST205', message: "Could not find the table 'public.demands' in the schema cache" }), true);
+  assert.equal(isSchemaOutOfDate({ code: 'PGRST204', message: "Could not find the 'arquivada' column of 'fups' in the schema cache" }), true);
+});
+
+test('reconhece pela mensagem quando o código não vem', () => {
+  assert.equal(isSchemaOutOfDate({ message: 'relation "public.demands" does not exist' }), true);
+  assert.equal(isSchemaOutOfDate({ message: 'Could not find the table in the schema cache' }), true);
+});
+
+test('não confunde com erro de rede, de senha ou de permissão', () => {
+  assert.equal(isSchemaOutOfDate(new TypeError('Failed to fetch')), false);
+  assert.equal(isSchemaOutOfDate({ message: 'Invalid login credentials' }), false);
+  assert.equal(isSchemaOutOfDate({ code: '42501', message: 'permission denied for table tasks' }), false);
+  assert.equal(isSchemaOutOfDate(null), false);
+});
+
+test('banco desatualizado vira instrução de rodar o schema, não mensagem crua', () => {
+  const d = describeBackendError({ code: '42P01', message: 'relation "public.notes" does not exist' });
+  assert.match(d.titulo, /desatualizado/);
+  assert.ok(d.comoResolver.some((p) => /schema\.sql/.test(p)), 'tem que dizer qual arquivo rodar');
+  assert.ok(d.detalhe.includes('public.notes'), 'preserva qual objeto faltou, para o diagnóstico');
+});
+
+test('a classificação de esquema vem antes da de rede, que é a mais genérica', () => {
+  // Um erro do PostgREST pode chegar sem código e ser confundido com outra
+  // coisa se a ordem das verificações mudar.
+  const d = describeBackendError({ message: 'Could not find the table \'public.demands\' in the schema cache' }, null);
+  assert.match(d.titulo, /desatualizado/);
+});
